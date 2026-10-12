@@ -11,19 +11,53 @@ public static class Lab02Endpoints
     {
         app.MapGet("/api/incidents/search", async (string? q, string? sortBy, SecureLabDbContext db, CancellationToken ct) =>
         {
-            var order = sortBy switch
+            var query = db.Incidents.AsNoTracking();
+
+            // 1. Безпечна обробка пошукового запиту через EscapeLike та ILike
+            if (!string.IsNullOrEmpty(q))
             {
-                null or "" or "createdAtUtc" => "created_at_utc DESC",
-                "severity" => "severity", "status" => "status", _ => sortBy
+                var escaped = EscapeLike(q);
+                var pattern = $"%{escaped}%";
+                query = query.Where(i => EF.Functions.ILike(i.Title, pattern, "\\") || EF.Functions.ILike(i.Description, pattern, "\\"));
+            }
+
+            // 2. Безпечне сортування за білим списком (Allowlist) із числовими рангами та ThenBy(Id)
+            query = sortBy switch
+            {
+                null or "" or "createdAtUtc" => query
+                    .OrderByDescending(i => i.CreatedAtUtc)
+                    .ThenBy(i => i.Id),
+
+                "severity" => query
+                    .OrderBy(i => i.Severity == IncidentSeverity.Critical ? 0 :
+                                  i.Severity == IncidentSeverity.High ? 1 :
+                                  i.Severity == IncidentSeverity.Medium ? 2 : 3)
+                    .ThenBy(i => i.Id),
+
+                "status" => query
+                    .OrderBy(i => i.Status == IncidentStatus.New ? 0 :
+                                  i.Status == IncidentStatus.Triaged ? 1 :
+                                  i.Status == IncidentStatus.InProgress ? 2 :
+                                  i.Status == IncidentStatus.Resolved ? 3 : 4)
+                    .ThenBy(i => i.Id),
+
+                _ => throw new BadHttpRequestException("Invalid sortBy parameter.", statusCode: StatusCodes.Status400BadRequest)
             };
-            var sql = "SELECT * FROM incidents WHERE title ILIKE '%" + (q ?? "")
-                + "%' OR description ILIKE '%" + (q ?? "") + "%' ORDER BY " + order + " LIMIT 50";
-            var rows = await db.Incidents.FromSqlRaw(sql).AsNoTracking().ToListAsync(ct);
-            return Results.Ok(rows.Select(row => new
-            {
-                row.Id, row.Title, row.Description,
-                Severity = row.Severity.ToString(), Status = row.Status.ToString(), row.CreatedAtUtc
-            }));
+
+            // 3. Обмеження вибірки (Take 50) після сортування та матеріалізація
+            var rows = await query.Take(50).ToListAsync(ct);
+
+            // 4. Проєкція у фіксований Response DTO (IncidentSearchItemResponse)
+            var response = rows.Select(row => new IncidentSearchItemResponse(
+                row.Id,
+                row.Title,
+                row.Description,
+                row.Severity.ToString(),
+                row.Status.ToString(),
+                row.CreatedAtUtc
+            ));
+
+            return Results.Ok(response);
         });
 
         app.MapPost("/api/incidents", async (CreateIncidentRequest request, SecureLabDbContext db, CancellationToken ct) =>
@@ -110,9 +144,34 @@ public static class Lab02Endpoints
             );
         });
     }
+
+    /// <summary>
+    /// Екранує спеціальні символи оператора LIKE/ILIKE (\, _, %) у введеному користувачем рядку.
+    /// </summary>
+    public static string EscapeLike(string value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            return string.Empty;
+        }
+
+        return value
+            .Replace("\\", "\\\\") // 1. Екрануємо слеш
+            .Replace("_", "\\_")   // 2. Екрануємо підкреслення
+            .Replace("%", "\\%");  // 3. Екрануємо знак відсотка
+    }
 }
 
 public sealed record CreateIncidentRequest(
     string? Title, string? Description, string? Severity, DateTimeOffset? OccurredAtUtc);
 
 public sealed record CreatedIncidentResponse(Guid Id, string Title);
+
+public sealed record IncidentSearchItemResponse(
+    Guid Id,
+    string Title,
+    string Description,
+    string Severity,
+    string Status,
+    DateTimeOffset CreatedAtUtc
+);
