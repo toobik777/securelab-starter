@@ -99,6 +99,14 @@ public static class Lab02Endpoints
                 errors["Severity"] = new[] { "Invalid severity value." };
             }
 
+            // E1 (T-09). Крос-полівна валідація: якщо High або Critical, опис має містити щонайменше 40 символів
+            if ((severity == IncidentSeverity.High || severity == IncidentSeverity.Critical) && trimmedDesc.Length < 40)
+            {
+                errors["Description"] = errors.TryGetValue("Description", out var existingDesc)
+                    ? existingDesc.Append("Description must be at least 40 characters long for High or Critical severity.").ToArray()
+                    : new[] { "Description must be at least 40 characters long for High or Critical severity." };
+            }
+
             // 6. Валідація OccurredAtUtc
             if (request.OccurredAtUtc is null)
             {
@@ -113,6 +121,24 @@ public static class Lab02Endpoints
             if (errors.Count > 0)
             {
                 return Results.ValidationProblem(errors);
+            }
+
+            // E2 (T-03). Перевірка на конфлікт (409) перед записом у базу
+            var conflictExists = await db.Incidents.AnyAsync(i => 
+                i.Title == trimmedTitle && 
+                (i.Status == IncidentStatus.New || 
+                 i.Status == IncidentStatus.Triaged || 
+                 i.Status == IncidentStatus.InProgress || 
+                 i.Status == IncidentStatus.Resolved), 
+                ct);
+
+            if (conflictExists)
+            {
+                return Results.Problem(
+                    statusCode: StatusCodes.Status409Conflict,
+                    title: "Conflict",
+                    detail: "An active incident with the same title already exists."
+                );
             }
 
             // 8. Нормалізація
