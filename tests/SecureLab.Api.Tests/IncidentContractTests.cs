@@ -20,7 +20,8 @@ public class IncidentContractTests : IClassFixture<SecureLabApiFactory>
     [Fact]
     public async Task Create_Incident_InvalidSeverity_ReturnsBadRequestWithValidationProblem()
     {
-        var client = _factory.CreateClient();
+        // Після ЛР 3 create захищений: попередні перевірки контракту виконує автентифікований клієнт.
+        using var client = await _factory.LoginAsync("alice", TestPasswords.Seed);
 
         var requestBody = new
         {
@@ -48,7 +49,7 @@ public class IncidentContractTests : IClassFixture<SecureLabApiFactory>
     [Fact]
     public async Task Create_DuplicateIncident_FirstCreates_SecondReturnsConflict()
     {
-        var client = _factory.CreateClient();
+        using var client = await _factory.LoginAsync("alice", TestPasswords.Seed);
         var uniqueTitle = $"Regression-{Guid.NewGuid():N}";
 
         var requestBody = new

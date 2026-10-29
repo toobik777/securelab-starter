@@ -22,6 +22,7 @@ builder.Services.AddDbContext<SecureLabDbContext>(options =>
 builder.Services.AddScoped<IncidentQueries>();
 
 builder.AddLab03Identity();
+builder.AddLab03RateLimiting();
 
 var app = builder.Build();
 
@@ -49,6 +50,7 @@ if (app.Environment.IsDevelopment())
     app.MapScalarApiReference();
 }
 
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 

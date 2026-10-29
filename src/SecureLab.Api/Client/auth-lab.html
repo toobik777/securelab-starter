@@ -1,7 +1,69 @@
 <!doctype html>
-<html lang="uk"><meta charset="utf-8"><title>ЛР 03 — сеанс</title>
-<h1>Навчальний сеанс</h1>
-<form id="login"><label>Ім’я <input name="userName" autocomplete="username" required></label>
-<label>Пароль <input name="password" type="password" autocomplete="current-password" required></label><button>Увійти</button></form>
-<button id="me">Мій профіль</button><button id="logout">Вийти</button><pre id="result"></pre>
-<script src="auth-lab.js" defer></script></html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ЛР 03 — автентифікація</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 880px; margin: 1.5rem auto; padding: 0 1rem; color: #1b1f24; }
+  fieldset { margin: 0 0 1rem; border: 1px solid #c8ced6; border-radius: 6px; }
+  legend { font-weight: 600; }
+  label { display: block; margin: .4rem 0; }
+  input, select, textarea { font: inherit; padding: .3rem; width: 100%; box-sizing: border-box; }
+  button { font: inherit; padding: .4rem .9rem; margin-top: .4rem; cursor: pointer; }
+  #state { display: inline-block; padding: .15rem .6rem; border-radius: 1rem; font-weight: 600; }
+  #state[data-state="signed-in"] { background: #d7f0dc; color: #14532d; }
+  #state[data-state="anonymous"] { background: #fde2e2; color: #7f1d1d; }
+  #state[data-state="unknown"] { background: #fff3c4; color: #713f12; }
+  pre { background: #f3f5f7; padding: .6rem; border-radius: 6px; min-height: 2.2rem; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<h1>Навчальний сеанс SecureLab</h1>
+<p>Стан сеансу: <span id="state" data-state="unknown">Перевірка…</span></p>
+
+<fieldset>
+  <legend>Реєстрація</legend>
+  <form id="register" autocomplete="off">
+    <label>Ім’я користувача <input name="userName" autocomplete="username" required minlength="3" maxlength="64"></label>
+    <label>Email <input name="email" type="email" autocomplete="email" required maxlength="256"></label>
+    <label>Відображуване ім’я <input name="displayName" required maxlength="120"></label>
+    <label>Пароль <input name="password" type="password" autocomplete="new-password" required minlength="10" maxlength="128"></label>
+    <button>Зареєструватися</button>
+  </form>
+</fieldset>
+
+<fieldset>
+  <legend>Вхід</legend>
+  <form id="login">
+    <label>Ім’я <input name="userName" autocomplete="username" required></label>
+    <label>Пароль <input name="password" type="password" autocomplete="current-password" required></label>
+    <button>Увійти</button>
+  </form>
+  <button id="me" type="button">Мій профіль</button>
+  <button id="logout" type="button">Вийти</button>
+</fieldset>
+
+<fieldset>
+  <legend>Профіль (лише з /api/me)</legend>
+  <pre id="profile">—</pre>
+</fieldset>
+
+<fieldset>
+  <legend>Новий інцидент (власник визначається сервером)</legend>
+  <form id="incident">
+    <label>Заголовок <input name="title" required maxlength="160"></label>
+    <label>Опис <textarea name="description" rows="3" required maxlength="4000"></textarea></label>
+    <label>Серйозність
+      <select name="severity"><option>Low</option><option>Medium</option><option>High</option><option>Critical</option></select>
+    </label>
+    <label>Час події <input name="occurredAt" type="datetime-local" required></label>
+    <button>Створити</button>
+  </form>
+  <pre id="created">—</pre>
+</fieldset>
+
+<pre id="result"></pre>
+<script src="auth-lab.js" defer></script>
+</body>
+</html>
