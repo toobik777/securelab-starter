@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
+using SecureLab.Api.Application.Incidents;
 using SecureLab.Api.Data;
 using SecureLab.Api.Data.Entities;
 
@@ -10,9 +11,19 @@ public static class Lab02Endpoints
 {
     public static void MapLab02Endpoints(this WebApplication app)
     {
-        app.MapGet("/api/incidents/search", async (string? q, string? sortBy, SecureLabDbContext db, CancellationToken ct) =>
+        app.MapGet("/api/incidents/search", async (string? q, string? sortBy, HttpContext httpContext, SecureLabDbContext db, CancellationToken ct) =>
         {
-            var query = db.Incidents.AsNoTracking();
+            // ЛР 04 (A-11): суб'єкт і правило видимості беруться з principal; умова стоїть у запиті
+            // до фільтра пошуку, сортування та Take(50).
+            if (!IncidentAccess.TryGetUserId(httpContext.User, out var searcherId))
+            {
+                return Results.Challenge();
+            }
+
+            var canSeeAll = IncidentAccess.CanSeeAll(httpContext.User);
+            var query = db.Incidents
+                .AsNoTracking()
+                .Where(i => canSeeAll || i.OwnerUserId == searcherId);
 
             // 1. Безпечна обробка пошукового запиту через EscapeLike та ILike
             if (!string.IsNullOrEmpty(q))
@@ -59,7 +70,7 @@ public static class Lab02Endpoints
             ));
 
             return Results.Ok(response);
-        });
+        }).RequireAuthorization();
 
         app.MapPost("/api/incidents", async (CreateIncidentRequest request, HttpContext httpContext, SecureLabDbContext db, CancellationToken ct) =>
         {

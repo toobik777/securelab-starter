@@ -20,6 +20,7 @@ var connectionString = builder.Configuration.GetConnectionString("SecureLab")
 builder.Services.AddDbContext<SecureLabDbContext>(options =>
     options.UseNpgsql(connectionString));
 builder.Services.AddScoped<IncidentQueries>();
+builder.Services.AddScoped<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, IncidentAuthorizationHandler>();
 
 builder.AddLab03Identity();
 builder.AddLab03RateLimiting();
