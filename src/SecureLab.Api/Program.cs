@@ -61,7 +61,7 @@ app.UseStatusCodePages();
 const string contentSecurityPolicy =
     "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; "
     + "object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
-const string cspHeaderName = "Content-Security-Policy-Report-Only";
+const string cspHeaderName = "Content-Security-Policy";
 
 app.Use(async (context, next) =>
 {
