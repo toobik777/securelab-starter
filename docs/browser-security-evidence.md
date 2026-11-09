@@ -1,7 +1,24 @@
 # Докази безпеки браузера (DEL-01) — ЛР 5
 
 Рівень: **відмінний («Відмінно»)** (накопичувальний: включає «Задовільно» і «Добре»). Студент: Немировський Артем Юрійович, КБ-41. Спільний сценарій 2-A.
-Усі докази зібрано лише на локальному стенді (loopback, штучні дані). Паролі, cookie Value і token у файлах немає. Знімки — у `docs/evidence/` (знімок сторінки — фактичний вивід Chrome; панелі Network/Elements/Console побудовано зі зафіксованих даних реального запуску через Playwright/CDP; сирі значення — `xss-data.json`, `cors-data.json`, `csp-data.json`, `final-data.json`).
+Усі докази зібрано лише на локальному стенді (loopback, штучні дані). Паролі, cookie Value і token у файлах немає.
+Основні докази — **знімки справжнього DevTools Chrome 156** у `docs/evidence/devtools/` (фронтенд DevTools, приєднаний до сторінки; кроки виконано в Console самого DevTools, сторінкою керував Playwright). Додаткові рисунки в `docs/evidence/` — знімки сторінок і панелі Network/Elements/Console, побудовані зі зафіксованих даних реального запуску (Playwright/CDP) без зміни значень; сирі значення — `xss-data.json`, `cors-data.json`, `csp-data.json`, `final-data.json`.
+
+### Знімки справжнього DevTools (`docs/evidence/devtools/`)
+
+| Файл | Стан / commit | Що показує |
+|---|---|---|
+| `v-alice-console.png`, `v-alice-network.png`, `v-alice-elements.png` | vulnerable `0f72d74` | Console: `null`, потім `'executed'`; Network: `POST incidents 201`, `GET {id} 200`, запит `x`; Elements: `<img src="x" onerror=…>` у `#description` і `data-lab05-marker="executed"` |
+| `v-morgan-console.png`, `v-morgan-elements.png` | vulnerable | сеанс Morgan: `null` до GET, `'executed'` після; `<img>` у DOM |
+| `v-comments-console.png`, `v-comments-elements.png` | vulnerable | другий sink: `<img>` у `<p>` коментаря |
+| `v-domtest-console.png` | vulnerable | `description-dom.js` у Console: `FAIL: …` (`passed: false`, 8 порушень) |
+| `f-alice-*.png`, `f-morgan-*.png`, `f-comments-*.png` | fixed (final) | той самий запис: `null`; в Elements текстовий вузол `"<img src=x onerror=…>"`, без елемента `<img>` |
+| `f-domtest-console.png` | fixed + CSP | `PASS: description and comments rendered as plain text` (`passed: true`) |
+| `cv-4174-*.png` | без CORS policy `0f72d74` | probe 4174: `blocked by CORS policy`, `CORS error`, `OPTIONS 405` |
+| `cf-4173-*.png` | policy `Lab05BrowserProbe` | probe 4173: GET 200, `GET + Preflight`, `OPTIONS 204`, `Access-Control-Allow-Origin/-Methods/-Headers`, `Access-Control-Allow-Credentials` |
+| `cf-4174-*.png` | policy | probe 4174: `CORS error`, preflight без `Access-Control-*` |
+| `ro-csp-headers.png`, `ro-csp-console.png` | CSP report-only `87adbca` | `Content-Security-Policy-Report-Only`; порушення лише залоговано |
+| `f-csp-headers.png`, `f-csp-console.png` | CSP enforcement | `Content-Security-Policy`, `nosniff`, `no-referrer`; `The action has been blocked.` |
 
 ## Стенд і Git-стан
 
@@ -18,9 +35,9 @@ Receipt `.scaffolds/lab-05.json`: release `lab-05-start-v1`, base_commit = entry
 | CORS | `7187210` | Development-only policy `Lab05BrowserProbe` |
 | CSP report-only | `87adbca` | `Content-Security-Policy-Report-Only` + `auth-lab.css` |
 | CSP enforcement | `3540524` | `Content-Security-Policy` |
-| **fixed / v0.5.0** | тег `v0.5.0` (`git rev-parse v0.5.0`) | код `3540524` + docs/evidence; кінцевий стан Етапу 3 (CORS лише Development, 4173) |
+| **fixed / v0.5.0** | тег `v0.5.0` (`git rev-parse v0.5.0`) | код `3540524` + docs, справжні знімки DevTools, звіт; кінцевий стан Етапу 3 (CORS лише Development, 4173) |
 
-Передавання: гілка `lab/5-browser-xss`, тег `v0.5.0`, bundle `lab05.bundle` (див. звіт DEL-03). Локальна `main` (`bcf8a16`, тег `v1.0.0`) не є предком гілки ЛР 5 (історія `main` розходиться з гілками `lab/N`), тому `git merge --ff-only` неможливий; merge за правилами курсу не виконувався (без `reset --hard`/`push --force`).
+Передавання: гілка `lab/5-browser-xss`, тег `v0.5.0` (вказує на фінальний commit гілки з кодом, документами, доказами і звітом), bundle `lab05.bundle` (див. звіт DEL-03). Локальна `main` (`bcf8a16`, тег `v1.0.0`) не є предком гілки ЛР 5 (у `main` увійшла лише ЛР 1 через pull request), тому fast-forward неможливий; fixed state перенесено до `main` merge-commit без конфліктів (`git merge --no-ff`), без `reset --hard` і без `push --force` для гілок.
 
 Механізм сеансу (Application → Storage → Cookies → `http://localhost:5080`, без Value): назва `.AspNetCore.Identity.Application`, Domain `localhost`, Path `/`, HttpOnly так, SameSite Lax, Secure ні (`docs/evidence/00-login-session.png`). HttpOnly лише обмежує читання cookie з JavaScript — не усуває виконання ін'єктованого коду.
 
