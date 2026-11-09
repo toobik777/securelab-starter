@@ -187,7 +187,9 @@ public static class IncidentEndpoints
         var includeInternal = (await authorization.AuthorizeAsync(
             httpContext.User, incident!, IncidentOperations.ReadInternalComments)).Succeeded;
 
-        var details = await queries.GetDetailsAsync(id, includeInternal, cancellationToken);
+        IncidentAccess.TryGetUserId(httpContext.User, out var currentUserId);
+        var details = await queries.GetDetailsAsync(
+            id, currentUserId, IncidentAccess.CanSeeAll(httpContext.User), includeInternal, cancellationToken);
         return details is null ? IncidentNotFound() : Results.Ok(details);
     }
 

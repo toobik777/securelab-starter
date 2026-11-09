@@ -74,14 +74,18 @@ public sealed class IncidentQueries(SecureLabDbContext dbContext, ILogger<Incide
 
     public Task<IncidentDetailsResponse?> GetDetailsAsync(
         Guid id,
+        Guid userId,
+        bool canSeeAll,
         bool includeInternalComments,
         CancellationToken cancellationToken)
     {
         logger.LogInformation("Loading incident {IncidentId}", id);
 
+        // Query scoping details: умова за суб'єктом стоїть у самому запиті, окремо від handler.
+        // MUTANT (стан "до"): owner-only, роль Analyst (canSeeAll) тут НЕ враховано.
         return dbContext.Incidents
             .AsNoTracking()
-            .Where(incident => incident.Id == id)
+            .Where(incident => incident.Id == id && incident.OwnerUserId == userId)
             .Select(incident => new IncidentDetailsResponse(
                 incident.Id,
                 incident.Title,
