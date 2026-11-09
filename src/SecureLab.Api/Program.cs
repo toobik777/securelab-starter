@@ -25,6 +25,23 @@ builder.Services.AddScoped<Microsoft.AspNetCore.Authorization.IAuthorizationHand
 builder.AddLab03Identity();
 builder.AddLab03RateLimiting();
 
+// ЛР 5: навчальна CORS policy лише для Development. Штатний клієнт і API мають один origin (http://localhost:5080),
+// тому CORS у цій топології не потрібен. Дозволено ТІЛЬКИ probe http://localhost:4173 (без AllowAnyOrigin,
+// без відбиття Origin); http://localhost:4174 лишається негативним контролем. У Production policy не реєструється.
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddCors(options =>
+    {
+        options.AddPolicy("Lab05BrowserProbe", policy =>
+        {
+            policy.WithOrigins("http://localhost:4173")
+                  .WithMethods("GET")
+                  .WithHeaders("X-Lab-Cors-Probe")
+                  .AllowCredentials();
+        });
+    });
+}
+
 var app = builder.Build();
 
 var resetRequested = args.Contains("--reset-database", StringComparer.Ordinal);
@@ -49,6 +66,14 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
     app.MapScalarApiReference();
+}
+
+// CORS стоїть після routing і до rate limiter/authentication/authorization: дозволені headers
+// додаються також до 401/403/429, а preflight обробляється до перевірок доступу.
+app.UseRouting();
+if (app.Environment.IsDevelopment())
+{
+    app.UseCors("Lab05BrowserProbe");
 }
 
 app.UseRateLimiter();
