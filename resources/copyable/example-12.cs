@@ -1,0 +1,4 @@
+const string Lab05Marker =
+    "<img src=x onerror=\""
+    + "document.querySelector('#lab05-marker-target')"
+    + ".setAttribute('data-lab05-marker','executed')\">";
