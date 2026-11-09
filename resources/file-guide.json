@@ -1,0 +1,342 @@
+[
+  {
+    "path": "resources/copyable/README.md",
+    "purpose": "Довідник навігації та передумов ресурсного комплекту.",
+    "step": "Етап 1: підготовка й карта потоку"
+  },
+  {
+    "path": "resources/copyable/commands.md",
+    "purpose": "Покажчик усіх командних і Console/C# блоків методички.",
+    "step": "Етап 1: підготовка й карта потоку"
+  },
+  {
+    "path": "resources/copyable/comment-seed.cs",
+    "purpose": "Константа marker і initializer коментаря всередині DbSeeder.SeedAsync; добрий рівень.",
+    "step": "Етап 2: PoC і safe DOM"
+  },
+  {
+    "path": "resources/copyable/csp-headers.cs",
+    "purpose": "Фрагмент зміни наявної middleware заголовків; добрий/відмінний рівень.",
+    "step": "Етап 4: регресія, CSP і подання"
+  },
+  {
+    "path": "resources/copyable/description-dom.js",
+    "purpose": "Автоматична перевірка фактичного DOM опису в Console; відмінний рівень.",
+    "step": "Етап 4: регресія, CSP і подання"
+  },
+  {
+    "path": "resources/copyable/example-01.js",
+    "purpose": "Повна копія прикладу 1 (js); застосовуйте з передумовами та діагностикою відповідного кроку.",
+    "step": "JavaScript: окремо запит, HTTP-результат і тіло"
+  },
+  {
+    "path": "resources/copyable/example-02.js",
+    "purpose": "Повна копія прикладу 2 (javascript); застосовуйте з передумовами та діагностикою відповідного кроку.",
+    "step": "JavaScript: окремо запит, HTTP-результат і тіло"
+  },
+  {
+    "path": "resources/copyable/example-03.js",
+    "purpose": "Повна копія прикладу 3 (js); застосовуйте з передумовами та діагностикою відповідного кроку.",
+    "step": "Проба в Console: той самий рядок як HTML і як текст"
+  },
+  {
+    "path": "resources/copyable/example-04.sh",
+    "purpose": "Повна копія прикладу 4 (bash); застосовуйте з передумовами та діагностикою відповідного кроку.",
+    "step": "1. Підготуйте відтворюваний локальний стан"
+  },
+  {
+    "path": "resources/copyable/example-05.sh",
+    "purpose": "Повна копія прикладу 5 (bash); застосовуйте з передумовами та діагностикою відповідного кроку.",
+    "step": "1. Підготуйте відтворюваний локальний стан"
+  },
+  {
+    "path": "resources/copyable/example-06.ps1",
+    "purpose": "Повна копія прикладу 6 (powershell); застосовуйте з передумовами та діагностикою відповідного кроку.",
+    "step": "1. Підготуйте відтворюваний локальний стан"
+  },
+  {
+    "path": "resources/copyable/example-07.sh",
+    "purpose": "Повна копія прикладу 7 (bash); застосовуйте з передумовами та діагностикою відповідного кроку.",
+    "step": "1. Підготуйте відтворюваний локальний стан"
+  },
+  {
+    "path": "resources/copyable/example-08.sh",
+    "purpose": "Повна копія прикладу 8 (bash); застосовуйте з передумовами та діагностикою відповідного кроку.",
+    "step": "1. Підготуйте відтворюваний локальний стан"
+  },
+  {
+    "path": "resources/copyable/example-09.js",
+    "purpose": "Повна копія прикладу 9 (js); застосовуйте з передумовами та діагностикою відповідного кроку.",
+    "step": "2. Відтворіть лише [канонічний безпечний marker](../resources/lab05-marker.txt)"
+  },
+  {
+    "path": "resources/copyable/example-10.js",
+    "purpose": "Повна копія прикладу 10 (js); застосовуйте з передумовами та діагностикою відповідного кроку.",
+    "step": "4. Замініть dangerous sink safe DOM API"
+  },
+  {
+    "path": "resources/copyable/example-11.js",
+    "purpose": "Повна копія прикладу 11 (js); застосовуйте з передумовами та діагностикою відповідного кроку.",
+    "step": "4. Замініть dangerous sink safe DOM API"
+  },
+  {
+    "path": "resources/copyable/example-12.cs",
+    "purpose": "Повна копія прикладу 12 (csharp); застосовуйте з передумовами та діагностикою відповідного кроку.",
+    "step": "DOM: від даних до спостереження"
+  },
+  {
+    "path": "resources/copyable/example-13.cs",
+    "purpose": "Повна копія прикладу 13 (csharp); застосовуйте з передумовами та діагностикою відповідного кроку.",
+    "step": "DOM: від даних до спостереження"
+  },
+  {
+    "path": "resources/copyable/example-14.js",
+    "purpose": "Повна копія прикладу 14 (js); застосовуйте з передумовами та діагностикою відповідного кроку.",
+    "step": "DOM: від даних до спостереження"
+  },
+  {
+    "path": "resources/copyable/example-15.sh",
+    "purpose": "Повна копія прикладу 15 (bash); застосовуйте з передумовами та діагностикою відповідного кроку.",
+    "step": "2. Підніміть реальну другу origin"
+  },
+  {
+    "path": "resources/copyable/example-16.sh",
+    "purpose": "Повна копія прикладу 16 (bash); застосовуйте з передумовами та діагностикою відповідного кроку.",
+    "step": "2. Підніміть реальну другу origin"
+  },
+  {
+    "path": "resources/copyable/example-17.ps1",
+    "purpose": "Повна копія прикладу 17 (powershell); застосовуйте з передумовами та діагностикою відповідного кроку.",
+    "step": "2. Підніміть реальну другу origin"
+  },
+  {
+    "path": "resources/copyable/example-18.sh",
+    "purpose": "Повна копія прикладу 18 (bash); застосовуйте з передумовами та діагностикою відповідного кроку.",
+    "step": "2. Підніміть реальну другу origin"
+  },
+  {
+    "path": "resources/copyable/example-19.ps1",
+    "purpose": "Повна копія прикладу 19 (powershell); застосовуйте з передумовами та діагностикою відповідного кроку.",
+    "step": "2. Підніміть реальну другу origin"
+  },
+  {
+    "path": "resources/copyable/example-20.js",
+    "purpose": "Повна копія прикладу 20 (js); застосовуйте з передумовами та діагностикою відповідного кроку.",
+    "step": "2. Підніміть реальну другу origin"
+  },
+  {
+    "path": "resources/copyable/example-21.js",
+    "purpose": "Повна копія прикладу 21 (js); застосовуйте з передумовами та діагностикою відповідного кроку.",
+    "step": "2. Підніміть реальну другу origin"
+  },
+  {
+    "path": "resources/copyable/example-22.cs",
+    "purpose": "Повна копія прикладу 22 (csharp); застосовуйте з передумовами та діагностикою відповідного кроку.",
+    "step": "3. Налаштуйте мінімальну навчальну CORS policy"
+  },
+  {
+    "path": "resources/copyable/example-23.cs",
+    "purpose": "Повна копія прикладу 23 (csharp); застосовуйте з передумовами та діагностикою відповідного кроку.",
+    "step": "3. Налаштуйте мінімальну навчальну CORS policy"
+  },
+  {
+    "path": "resources/copyable/example-24.js",
+    "purpose": "Повна копія прикладу 24 (js); застосовуйте з передумовами та діагностикою відповідного кроку.",
+    "step": "3. Налаштуйте мінімальну навчальну CORS policy"
+  },
+  {
+    "path": "resources/copyable/example-25.js",
+    "purpose": "Повна копія прикладу 25 (js); застосовуйте з передумовами та діагностикою відповідного кроку.",
+    "step": "5. Перевірте credentials і межі policy"
+  },
+  {
+    "path": "resources/copyable/example-26.cs",
+    "purpose": "Повна копія прикладу 26 (csharp); застосовуйте з передумовами та діагностикою відповідного кроку.",
+    "step": "5. Перевірте credentials і межі policy"
+  },
+  {
+    "path": "resources/copyable/example-27.sh",
+    "purpose": "Повна копія прикладу 27 (bash); застосовуйте з передумовами та діагностикою відповідного кроку.",
+    "step": "6. Порівняйте browser і direct HTTP"
+  },
+  {
+    "path": "resources/copyable/example-28.ps1",
+    "purpose": "Повна копія прикладу 28 (powershell); застосовуйте з передумовами та діагностикою відповідного кроку.",
+    "step": "6. Порівняйте browser і direct HTTP"
+  },
+  {
+    "path": "resources/copyable/example-29.sh",
+    "purpose": "Повна копія прикладу 29 (bash); застосовуйте з передумовами та діагностикою відповідного кроку.",
+    "step": "6. Порівняйте browser і direct HTTP"
+  },
+  {
+    "path": "resources/copyable/example-30.ps1",
+    "purpose": "Повна копія прикладу 30 (powershell); застосовуйте з передумовами та діагностикою відповідного кроку.",
+    "step": "6. Порівняйте browser і direct HTTP"
+  },
+  {
+    "path": "resources/copyable/example-31.cs",
+    "purpose": "Повна копія прикладу 31 (csharp); застосовуйте з передумовами та діагностикою відповідного кроку.",
+    "step": "1. Складіть мінімальну CSP із фактичних ресурсів"
+  },
+  {
+    "path": "resources/copyable/example-32.js",
+    "purpose": "Повна копія прикладу 32 (js); застосовуйте з передумовами та діагностикою відповідного кроку.",
+    "step": "1. Складіть мінімальну CSP із фактичних ресурсів"
+  },
+  {
+    "path": "resources/copyable/example-33.js",
+    "purpose": "Повна копія прикладу 33 (js); застосовуйте з передумовами та діагностикою відповідного кроку.",
+    "step": "Відтворюваний тест реального DOM без додаткового framework"
+  },
+  {
+    "path": "resources/copyable/example-34.sh",
+    "purpose": "Повна копія прикладу 34 (bash); застосовуйте з передумовами та діагностикою відповідного кроку.",
+    "step": "Відтворюваний тест реального DOM без додаткового framework"
+  },
+  {
+    "path": "resources/copyable/example-35.ps1",
+    "purpose": "Повна копія прикладу 35 (powershell); застосовуйте з передумовами та діагностикою відповідного кроку.",
+    "step": "Відтворюваний тест реального DOM без додаткового framework"
+  },
+  {
+    "path": "resources/copyable/example-36.sh",
+    "purpose": "Повна копія прикладу 36 (bash); застосовуйте з передумовами та діагностикою відповідного кроку.",
+    "step": "5. Збережіть канонічний стан у Git"
+  },
+  {
+    "path": "resources/copyable/example-37.sh",
+    "purpose": "Повна копія прикладу 37 (bash); застосовуйте з передумовами та діагностикою відповідного кроку.",
+    "step": "5. Збережіть канонічний стан у Git"
+  },
+  {
+    "path": "resources/copyable/example-38.sh",
+    "purpose": "Повна копія прикладу 38 (bash); застосовуйте з передумовами та діагностикою відповідного кроку.",
+    "step": "5. Збережіть канонічний стан у Git"
+  },
+  {
+    "path": "resources/copyable/example-39.sh",
+    "purpose": "Повна копія прикладу 39 (bash); застосовуйте з передумовами та діагностикою відповідного кроку.",
+    "step": "5. Збережіть канонічний стан у Git"
+  },
+  {
+    "path": "resources/copyable/example-40.sh",
+    "purpose": "Повна копія прикладу 40 (bash); застосовуйте з передумовами та діагностикою відповідного кроку.",
+    "step": "5. Збережіть канонічний стан у Git"
+  },
+  {
+    "path": "resources/copyable/safe-url.js",
+    "purpose": "Нейтральна перевірка URL protocol/href без переходу за адресою.",
+    "step": "Етап 2, крок 4 (контекст URL) і Етап 4, крок 3; відмінний рівень"
+  },
+  {
+    "path": "resources/examples/title-source-to-sink.md",
+    "purpose": "Заповнений безпечний приклад іншого поля Title; орієнтир структури карти.",
+    "step": "Етап 1: підготовка й карта потоку"
+  },
+  {
+    "path": "resources/lab05-marker.txt",
+    "purpose": "Єдине джерело однорядкового нешкідливого marker для копіювання.",
+    "step": "Етап 2: PoC і safe DOM"
+  },
+  {
+    "path": "resources/starter-project/docs/variant-02-a.md",
+    "purpose": "Опубліковані спільні параметри baseline 2-A.",
+    "step": "Етап 1: підготовка й карта потоку"
+  },
+  {
+    "path": "resources/student-scaffolds/README-archive.md",
+    "purpose": "Довідник навігації та передумов ресурсного комплекту.",
+    "step": "Етап 1: підготовка й карта потоку"
+  },
+  {
+    "path": "resources/student-scaffolds/README-lab05.md",
+    "purpose": "Довідник навігації та передумов ресурсного комплекту.",
+    "step": "Етап 1: підготовка й карта потоку"
+  },
+  {
+    "path": "resources/templates/browser-security-evidence.md",
+    "purpose": "Каркас наявних доказів до/після та REG-XSS/CORS.",
+    "step": "Етап 1: підготовка й карта потоку"
+  },
+  {
+    "path": "resources/templates/report.md",
+    "purpose": "Каркас DEL-03 з декларацією ШІ.",
+    "step": "Етап 4: регресія, CSP і подання"
+  },
+  {
+    "path": "resources/templates/source-to-sink.md",
+    "purpose": "Каркас власної карти потоку для DEL-01.",
+    "step": "Етап 1: підготовка й карта потоку"
+  },
+  {
+    "path": "resources/screenshots/lr05-fig-01.png",
+    "purpose": "Рисунок 1: Rider: Solution, DbSeeder.cs та Build CS1003.",
+    "step": "Практична частина, поруч із відповідним дослідом"
+  },
+  {
+    "path": "resources/screenshots/lr05-fig-02.png",
+    "purpose": "Рисунок 2: Rider: локальна .NET Project конфігурація й Environment Variables.",
+    "step": "Практична частина, поруч із відповідним дослідом"
+  },
+  {
+    "path": "resources/screenshots/lr05-fig-03.png",
+    "purpose": "Рисунок 3: browser-lab.html: GET 200 та seed-інцидент.",
+    "step": "Практична частина, поруч із відповідним дослідом"
+  },
+  {
+    "path": "resources/screenshots/lr05-fig-04.png",
+    "purpose": "Рисунок 4: Console: попередження self-XSS.",
+    "step": "Практична частина, поруч із відповідним дослідом"
+  },
+  {
+    "path": "resources/screenshots/lr05-fig-05.png",
+    "purpose": "Рисунок 5: Network: Keep log, Disable cache, All і Headers GET 200.",
+    "step": "Практична частина, поруч із відповідним дослідом"
+  },
+  {
+    "path": "resources/screenshots/lr05-fig-06.png",
+    "purpose": "Рисунок 6: Elements і Console: виконаний marker до виправлення.",
+    "step": "Практична частина, поруч із відповідним дослідом"
+  },
+  {
+    "path": "resources/screenshots/lr05-fig-07.png",
+    "purpose": "Рисунок 7: Elements і Console: текстовий вузол після виправлення.",
+    "step": "Практична частина, поруч із відповідним дослідом"
+  },
+  {
+    "path": "resources/screenshots/lr05-fig-08.png",
+    "purpose": "Рисунок 8: Network і Console: CORS error до policy.",
+    "step": "Практична частина, поруч із відповідним дослідом"
+  },
+  {
+    "path": "resources/screenshots/lr05-fig-09.png",
+    "purpose": "Рисунок 9: Network і Console: allowed 4173 та disallowed 4174.",
+    "step": "Практична частина, поруч із відповідним дослідом"
+  },
+  {
+    "path": "resources/screenshots/lr05-fig-10.png",
+    "purpose": "Рисунок 10: Network: OPTIONS 204 та GET 200 після preflight.",
+    "step": "Практична частина, поруч із відповідним дослідом"
+  },
+  {
+    "path": "resources/screenshots/lr05-fig-11.png",
+    "purpose": "Рисунок 11: Network: response headers запиту з credentials.",
+    "step": "Практична частина, поруч із відповідним дослідом"
+  },
+  {
+    "path": "resources/screenshots/lr05-fig-12.png",
+    "purpose": "Рисунок 12: Network і Console: заголовки CSP report-only та порушення.",
+    "step": "Практична частина, поруч із відповідним дослідом"
+  },
+  {
+    "path": "resources/copyable/sdk-policy.json",
+    "purpose": "Точний global.json для вибору стабільної .NET 10 SDK.",
+    "step": "Етап 1, підкрок 1.2"
+  },
+  {
+    "path": "resources/copyable/sdk-policy-commit.sh",
+    "purpose": "Окремий commit політики SDK до встановлення scaffold; Bash.",
+    "step": "Етап 1, підкрок 1.2"
+  }
+]
