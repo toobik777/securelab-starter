@@ -55,10 +55,25 @@ if (resetRequested)
 app.UseExceptionHandler();
 app.UseStatusCodePages();
 
+// ЛР 5: CSP як defense in depth (НЕ замінює safe DOM rendering). Політику складено з фактичних ресурсів клієнта:
+// власні /app.js, /auth-lab.js, /browser-lab.js, власні CSS, same-origin fetch до API; inline-скриптів і inline-стилів немає
+// (inline <style> сторінки auth-lab.html винесено в auth-lab.css), тому 'unsafe-inline' не потрібен.
+const string contentSecurityPolicy =
+    "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; "
+    + "object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
+const string cspHeaderName = "Content-Security-Policy-Report-Only";
+
 app.Use(async (context, next) =>
 {
     context.Response.Headers.XContentTypeOptions = "nosniff";
     context.Response.Headers.Append("Referrer-Policy", "no-referrer");
+    // Development-довідник /scalar використовує сторонній UI-пакет з власними ресурсами: виняток лише тут і лише в Development.
+    var isDevelopmentApiReference =
+        app.Environment.IsDevelopment() && context.Request.Path.StartsWithSegments("/scalar");
+    if (!isDevelopmentApiReference)
+    {
+        context.Response.Headers[cspHeaderName] = contentSecurityPolicy;
+    }
     await next(context);
 });
 
