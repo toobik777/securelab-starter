@@ -28,3 +28,75 @@ Accept: application/json
 ### Lab 1 extension point: expected 501 before student implementation
 GET {{host}}/api/incidents/severity-summary
 Accept: application/json
+
+### ==========================================
+### LAB 02: B4 - Ручна перевірка POST-запитів
+### ==========================================
+
+### 1. Коректний запит -> очікується 201 Created (без ownerUserId та status у відповіді)
+POST {{host}}/api/incidents
+Content-Type: application/json
+
+{
+  "title": "USB Port Security Alert",
+  "description": "Unauthorized device connected.",
+  "severity": "High",
+  "occurredAtUtc": "2026-10-12T10:00:00Z"
+}
+
+### 2. Некоректний severity ("7") -> очікується 400 Bad Request (ключ severity)
+POST {{host}}/api/incidents
+Content-Type: application/json
+
+{
+  "title": "Test Incident",
+  "description": "Testing invalid severity.",
+  "severity": "7",
+  "occurredAtUtc": "2026-10-12T10:00:00Z"
+}
+
+### 3. Без occurredAtUtc -> очікується 400 Bad Request (ключ occurredAtUtc)
+POST {{host}}/api/incidents
+Content-Type: application/json
+
+{
+  "title": "Test Incident",
+  "description": "Testing missing date.",
+  "severity": "Medium"
+}
+
+### 4. Дата у майбутньому -> очікується 400 Bad Request
+POST {{host}}/api/incidents
+Content-Type: application/json
+
+{
+  "title": "Future Incident",
+  "description": "Testing future date.",
+  "severity": "Low",
+  "occurredAtUtc": "2099-01-01T00:00:00Z"
+}
+
+### 5. Порожній title -> очікується 400 Bad Request (ключ title)
+POST {{host}}/api/incidents
+Content-Type: application/json
+
+{
+  "title": "   ",
+  "description": "Testing empty title.",
+  "severity": "Low",
+  "occurredAtUtc": "2026-10-12T10:00:00Z"
+}
+
+### 6. Зайві поля (id, status, ownerUserId) -> очікується створення з status New, власником Alice
+POST {{host}}/api/incidents
+Content-Type: application/json
+
+{
+  "id": "11111111-1111-1111-1111-111111111111",
+  "title": "Ignored Fields Test",
+  "description": "Testing that malicious fields are ignored.",
+  "severity": "Low",
+  "occurredAtUtc": "2026-10-12T10:00:00Z",
+  "status": "Closed",
+  "ownerUserId": "22222222-2222-2222-2222-222222222222"
+}

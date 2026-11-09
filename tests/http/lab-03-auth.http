@@ -1,0 +1,19 @@
+@baseUrl = http://localhost:5080
+
+### A-03 / дефект ЛР 3: без cookie header X-Demo-UserId більше не впливає (очікувано 401)
+GET {{baseUrl}}/api/me
+X-Demo-UserId: 10000000-0000-0000-0000-000000000002
+
+### A-01: анонімний create (очікувано 401)
+POST {{baseUrl}}/api/incidents
+Content-Type: application/json
+
+{
+  "title": "Анонімна спроба",
+  "description": "Опис довший за сорок символів для перевірки валідації.",
+  "severity": "Low",
+  "occurredAtUtc": "2026-10-29T09:00:00Z"
+}
+
+### Реєстрація: пароль підставте локально, у файл не записуйте
+# POST {{baseUrl}}/api/auth/register

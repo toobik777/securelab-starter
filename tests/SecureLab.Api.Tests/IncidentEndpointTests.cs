@@ -6,20 +6,31 @@ using SecureLab.Api.Presentation.Contracts;
 
 namespace SecureLab.Api.Tests;
 
+// ЛР 4: група /api/incidents вимагає автентифікації, тому раніше анонімні тести ЛР 1
+// виконуються автентифікованим клієнтом (Alice). Контракт списку змінено за матрицею доступу.
 public sealed class IncidentEndpointTests(SecureLabApiFactory factory)
-    : IClassFixture<SecureLabApiFactory>
+    : IClassFixture<SecureLabApiFactory>, IAsyncLifetime
 {
-    private readonly HttpClient _client = factory.CreateClient();
+    private HttpClient _client = null!;
+
+    public async Task InitializeAsync() =>
+        _client = await factory.LoginAsync("alice", TestPasswords.Seed);
+
+    public Task DisposeAsync()
+    {
+        _client.Dispose();
+        return Task.CompletedTask;
+    }
 
     [Fact]
-    public async Task GetList_ReturnsSeededIncidents()
+    public async Task GetList_AsAlice_ReturnsOnlyOwnIncidents()
     {
         var incidents = await _client.GetFromJsonAsync<List<IncidentListItemResponse>>(
             "/api/incidents");
 
         Assert.NotNull(incidents);
         Assert.Contains(incidents, incident => incident.Id == DbSeeder.AliceIncidentId);
-        Assert.Contains(incidents, incident => incident.Id == DbSeeder.BobIncidentId);
+        Assert.DoesNotContain(incidents, incident => incident.Id == DbSeeder.BobIncidentId);
     }
 
     [Fact]

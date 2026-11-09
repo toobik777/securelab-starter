@@ -1,3 +1,4 @@
+using SecureLab.Api.Scaffolding;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 using SecureLab.Api.Application.Incidents;
@@ -19,6 +20,27 @@ var connectionString = builder.Configuration.GetConnectionString("SecureLab")
 builder.Services.AddDbContext<SecureLabDbContext>(options =>
     options.UseNpgsql(connectionString));
 builder.Services.AddScoped<IncidentQueries>();
+builder.Services.AddScoped<Microsoft.AspNetCore.Authorization.IAuthorizationHandler, IncidentAuthorizationHandler>();
+
+builder.AddLab03Identity();
+builder.AddLab03RateLimiting();
+
+// ЛР 5: навчальна CORS policy лише для Development. Штатний клієнт і API мають один origin (http://localhost:5080),
+// тому CORS у цій топології не потрібен. Дозволено ТІЛЬКИ probe http://localhost:4173 (без AllowAnyOrigin,
+// без відбиття Origin); http://localhost:4174 лишається негативним контролем. У Production policy не реєструється.
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddCors(options =>
+    {
+        options.AddPolicy("Lab05BrowserProbe", policy =>
+        {
+            policy.WithOrigins("http://localhost:4173")
+                  .WithMethods("GET")
+                  .WithHeaders("X-Lab-Cors-Probe")
+                  .AllowCredentials();
+        });
+    });
+}
 
 var app = builder.Build();
 
@@ -33,10 +55,25 @@ if (resetRequested)
 app.UseExceptionHandler();
 app.UseStatusCodePages();
 
+// ЛР 5: CSP як defense in depth (НЕ замінює safe DOM rendering). Політику складено з фактичних ресурсів клієнта:
+// власні /app.js, /auth-lab.js, /browser-lab.js, власні CSS, same-origin fetch до API; inline-скриптів і inline-стилів немає
+// (inline <style> сторінки auth-lab.html винесено в auth-lab.css), тому 'unsafe-inline' не потрібен.
+const string contentSecurityPolicy =
+    "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; "
+    + "object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
+const string cspHeaderName = "Content-Security-Policy";
+
 app.Use(async (context, next) =>
 {
     context.Response.Headers.XContentTypeOptions = "nosniff";
     context.Response.Headers.Append("Referrer-Policy", "no-referrer");
+    // Development-довідник /scalar використовує сторонній UI-пакет з власними ресурсами: виняток лише тут і лише в Development.
+    var isDevelopmentApiReference =
+        app.Environment.IsDevelopment() && context.Request.Path.StartsWithSegments("/scalar");
+    if (!isDevelopmentApiReference)
+    {
+        context.Response.Headers[cspHeaderName] = contentSecurityPolicy;
+    }
     await next(context);
 });
 
@@ -45,6 +82,18 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
     app.MapScalarApiReference();
 }
+
+// CORS стоїть після routing і до rate limiter/authentication/authorization: дозволені headers
+// додаються також до 401/403/429, а preflight обробляється до перевірок доступу.
+app.UseRouting();
+if (app.Environment.IsDevelopment())
+{
+    app.UseCors("Lab05BrowserProbe");
+}
+
+app.UseRateLimiter();
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.UseDefaultFiles();
 app.UseStaticFiles();
@@ -60,6 +109,8 @@ app.MapGet("/health", async (SecureLabDbContext dbContext, CancellationToken can
     .ProducesProblem(StatusCodes.Status503ServiceUnavailable);
 
 app.MapIncidentEndpoints();
+app.MapLab03Identity();
+app.MapLab02Endpoints();
 app.MapFallbackToFile("index.html");
 
 app.Run();
