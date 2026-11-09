@@ -1,0 +1,397 @@
+{
+  "before": {
+    "commit": "814bef9",
+    "5080": [
+      {
+        "kind": "simple",
+        "result": {
+          "ok": true,
+          "status": 200,
+          "body": "{\"status\":\"ready\"}"
+        },
+        "console": [
+          "[error] Failed to load resource: the server responded with a status of 404 (Not Found)"
+        ],
+        "entries": [
+          {
+            "method": "GET",
+            "status": 200,
+            "failed": null,
+            "acao": null,
+            "acac": null,
+            "acam": null,
+            "acah": null,
+            "initiator": "script"
+          }
+        ]
+      }
+    ],
+    "4173": [
+      {
+        "kind": "simple",
+        "result": {
+          "ok": false,
+          "error": "TypeError: Failed to fetch"
+        },
+        "console": [
+          "[error] Failed to load resource: the server responded with a status of 404 (File not found)",
+          "[error] Access to fetch at 'http://localhost:5080/health' from origin 'http://localhost:4173' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.",
+          "[error] Failed to load resource: net::ERR_FAILED"
+        ],
+        "entries": [
+          {
+            "method": "GET",
+            "status": 200,
+            "failed": "net::ERR_FAILED",
+            "acao": null,
+            "acac": null,
+            "acam": null,
+            "acah": null,
+            "initiator": "script"
+          }
+        ]
+      },
+      {
+        "kind": "header",
+        "result": {
+          "ok": false,
+          "error": "TypeError: Failed to fetch"
+        },
+        "console": [
+          "[error] Access to fetch at 'http://localhost:5080/health' from origin 'http://localhost:4173' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource.",
+          "[error] Failed to load resource: net::ERR_FAILED"
+        ],
+        "entries": [
+          {
+            "method": "GET",
+            "status": null,
+            "failed": "net::ERR_FAILED",
+            "acao": null,
+            "acac": null,
+            "acam": null,
+            "acah": null,
+            "initiator": "script"
+          },
+          {
+            "method": "OPTIONS",
+            "status": 405,
+            "failed": null,
+            "acao": null,
+            "acac": null,
+            "acam": null,
+            "acah": null,
+            "initiator": "preflight"
+          }
+        ]
+      }
+    ],
+    "4174": [
+      {
+        "kind": "simple",
+        "result": {
+          "ok": false,
+          "error": "TypeError: Failed to fetch"
+        },
+        "console": [
+          "[error] Failed to load resource: the server responded with a status of 404 (File not found)",
+          "[error] Access to fetch at 'http://localhost:5080/health' from origin 'http://localhost:4174' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.",
+          "[error] Failed to load resource: net::ERR_FAILED"
+        ],
+        "entries": [
+          {
+            "method": "GET",
+            "status": 200,
+            "failed": "net::ERR_FAILED",
+            "acao": null,
+            "acac": null,
+            "acam": null,
+            "acah": null,
+            "initiator": "script"
+          }
+        ]
+      },
+      {
+        "kind": "header",
+        "result": {
+          "ok": false,
+          "error": "TypeError: Failed to fetch"
+        },
+        "console": [
+          "[error] Access to fetch at 'http://localhost:5080/health' from origin 'http://localhost:4174' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource.",
+          "[error] Failed to load resource: net::ERR_FAILED"
+        ],
+        "entries": [
+          {
+            "method": "GET",
+            "status": null,
+            "failed": "net::ERR_FAILED",
+            "acao": null,
+            "acac": null,
+            "acam": null,
+            "acah": null,
+            "initiator": "script"
+          },
+          {
+            "method": "OPTIONS",
+            "status": 405,
+            "failed": null,
+            "acao": null,
+            "acac": null,
+            "acam": null,
+            "acah": null,
+            "initiator": "preflight"
+          }
+        ]
+      }
+    ]
+  },
+  "after": {
+    "commit": "814bef9",
+    "4173": [
+      {
+        "kind": "simple",
+        "result": {
+          "ok": true,
+          "status": 200,
+          "body": "{\"status\":\"ready\"}"
+        },
+        "console": [
+          "[error] Failed to load resource: the server responded with a status of 404 (File not found)"
+        ],
+        "entries": [
+          {
+            "method": "GET",
+            "status": 200,
+            "failed": null,
+            "acao": null,
+            "acac": null,
+            "acam": null,
+            "acah": null,
+            "initiator": "script"
+          }
+        ]
+      },
+      {
+        "kind": "header",
+        "result": {
+          "ok": true,
+          "status": 200,
+          "body": "{\"status\":\"ready\"}"
+        },
+        "console": [],
+        "entries": [
+          {
+            "method": "GET",
+            "status": 200,
+            "failed": null,
+            "acao": null,
+            "acac": null,
+            "acam": null,
+            "acah": null,
+            "initiator": "script"
+          },
+          {
+            "method": "OPTIONS",
+            "status": 204,
+            "failed": null,
+            "acao": null,
+            "acac": null,
+            "acam": null,
+            "acah": null,
+            "initiator": "preflight"
+          }
+        ]
+      },
+      {
+        "kind": "incidents",
+        "result": {
+          "ok": true,
+          "status": 401
+        },
+        "console": [
+          "[error] Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+        ],
+        "entries": [
+          {
+            "method": "GET",
+            "status": 401,
+            "failed": null,
+            "acao": null,
+            "acac": null,
+            "acam": null,
+            "acah": null,
+            "initiator": "script"
+          }
+        ]
+      }
+    ],
+    "4174": [
+      {
+        "kind": "simple",
+        "result": {
+          "ok": false,
+          "error": "TypeError: Failed to fetch"
+        },
+        "console": [
+          "[error] Failed to load resource: the server responded with a status of 404 (File not found)",
+          "[error] Access to fetch at 'http://localhost:5080/health' from origin 'http://localhost:4174' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.",
+          "[error] Failed to load resource: net::ERR_FAILED"
+        ],
+        "entries": [
+          {
+            "method": "GET",
+            "status": 200,
+            "failed": "net::ERR_FAILED",
+            "acao": null,
+            "acac": null,
+            "acam": null,
+            "acah": null,
+            "initiator": "script"
+          }
+        ]
+      },
+      {
+        "kind": "header",
+        "result": {
+          "ok": false,
+          "error": "TypeError: Failed to fetch"
+        },
+        "console": [
+          "[error] Access to fetch at 'http://localhost:5080/health' from origin 'http://localhost:4174' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: No 'Access-Control-Allow-Origin' header is present on the requested resource.",
+          "[error] Failed to load resource: net::ERR_FAILED"
+        ],
+        "entries": [
+          {
+            "method": "GET",
+            "status": null,
+            "failed": "net::ERR_FAILED",
+            "acao": null,
+            "acac": null,
+            "acam": null,
+            "acah": null,
+            "initiator": "script"
+          },
+          {
+            "method": "OPTIONS",
+            "status": 204,
+            "failed": null,
+            "acao": null,
+            "acac": null,
+            "acam": null,
+            "acah": null,
+            "initiator": "preflight"
+          }
+        ]
+      }
+    ],
+    "curl_plain": "HTTP/1.1 200 OK\nContent-Type: application/json; charset=utf-8\nDate: Mon, 09 Nov 2026 13:46:51 GMT\nServer: Kestrel\nTransfer-Encoding: chunked\nX-Content-Type-Options: nosniff\nReferrer-Policy: no-referrer\n\n{\"status\":\"ready\"}",
+    "curl_4173": "HTTP/1.1 200 OK\nContent-Type: application/json; charset=utf-8\nDate: Mon, 09 Nov 2026 13:46:51 GMT\nServer: Kestrel\nAccess-Control-Allow-Origin: http://localhost:4173\nTransfer-Encoding: chunked\nX-Content-Type-Options: nosniff\nReferrer-Policy: no-referrer\n\n{\"status\":\"ready\"}",
+    "curl_4174": "HTTP/1.1 200 OK\nContent-Type: application/json; charset=utf-8\nDate: Mon, 09 Nov 2026 13:46:51 GMT\nServer: Kestrel\nTransfer-Encoding: chunked\nX-Content-Type-Options: nosniff\nReferrer-Policy: no-referrer\n\n{\"status\":\"ready\"}"
+  },
+  "cookie": {
+    "commit": "814bef9",
+    "4173": [
+      {
+        "kind": "button",
+        "result": {
+          "result_text": "200: [{\"id\":\"2456a27a-0765-47a7-93f1-7e9c6d89b156\",\"title\":\"dom-test-1794231860747-4\",\"severity\":\"Low\",\"status\":\"New\",\"occurredAtUtc\":\"2026-"
+        },
+        "console": [
+          "[error] Failed to load resource: the server responded with a status of 404 (File not found)"
+        ],
+        "entries": [
+          {
+            "method": "GET",
+            "status": 200,
+            "failed": null,
+            "acao": "http://localhost:4173",
+            "acac": "true",
+            "acam": null,
+            "acah": null,
+            "initiator": "script"
+          }
+        ]
+      }
+    ],
+    "4174": [
+      {
+        "kind": "button",
+        "result": {
+          "result_text": "Браузер не надав response JavaScript; звірте Network і серверний стан."
+        },
+        "console": [
+          "[error] Failed to load resource: the server responded with a status of 404 (File not found)",
+          "[error] Access to fetch at 'http://localhost:5080/api/incidents' from origin 'http://localhost:4174' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.",
+          "[error] Failed to load resource: net::ERR_FAILED"
+        ],
+        "entries": [
+          {
+            "method": "GET",
+            "status": 200,
+            "failed": "net::ERR_FAILED",
+            "acao": null,
+            "acac": null,
+            "acam": null,
+            "acah": null,
+            "initiator": "script"
+          }
+        ]
+      }
+    ]
+  },
+  "negcred": {
+    "commit": "814bef9",
+    "4173": [
+      {
+        "kind": "button",
+        "result": {
+          "result_text": "Браузер не надав response JavaScript; звірте Network і серверний стан."
+        },
+        "console": [
+          "[error] Failed to load resource: the server responded with a status of 404 (File not found)",
+          "[error] Access to fetch at 'http://localhost:5080/api/incidents' from origin 'http://localhost:4173' has been blocked by CORS policy: The value of the 'Access-Control-Allow-Credentials' header in the response is '' which must be 'true' when the request's credentials mode is 'include'.",
+          "[error] Failed to load resource: net::ERR_FAILED"
+        ],
+        "entries": [
+          {
+            "method": "GET",
+            "status": 200,
+            "failed": "net::ERR_FAILED",
+            "acao": "http://localhost:4173",
+            "acac": null,
+            "acam": null,
+            "acah": null,
+            "initiator": "script"
+          }
+        ]
+      }
+    ]
+  },
+  "final": {
+    "commit": "814bef9",
+    "4173_private": [
+      {
+        "kind": "button",
+        "result": {
+          "result_text": "401: {\"type\":\"https://tools.ietf.org/html/rfc9110#section-15.5.2\",\"title\":\"Unauthorized\",\"status\":401,\"traceId\":\"00-b6adfb7bd46237f22a57d38c"
+        },
+        "console": [
+          "[error] Failed to load resource: the server responded with a status of 404 (File not found)",
+          "[error] Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+        ],
+        "entries": [
+          {
+            "method": "GET",
+            "status": 401,
+            "failed": null,
+            "acao": "http://localhost:4173",
+            "acac": "true",
+            "acam": null,
+            "acah": null,
+            "initiator": "script"
+          }
+        ]
+      }
+    ]
+  }
+}

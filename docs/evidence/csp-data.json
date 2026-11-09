@@ -1,0 +1,115 @@
+{
+  "report": {
+    "commit": "7187210",
+    "flow_console": [
+      "[error] Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    ],
+    "doc_headers": {
+      "/auth-lab.html": {
+        "content-security-policy-report-only": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
+        "referrer-policy": "no-referrer",
+        "x-content-type-options": "nosniff"
+      },
+      "/": {
+        "content-security-policy-report-only": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
+        "referrer-policy": "no-referrer",
+        "x-content-type-options": "nosniff"
+      },
+      "/browser-lab.html": {
+        "content-security-policy-report-only": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
+        "referrer-policy": "no-referrer",
+        "x-content-type-options": "nosniff"
+      }
+    },
+    "flow_rows": [
+      [
+        "/auth-lab.html",
+        "200",
+        "1",
+        "ЛР 03 — автентифікація"
+      ],
+      [
+        "/",
+        "200",
+        "1",
+        "Навчальний трекер інцидентів"
+      ],
+      [
+        "/browser-lab.html",
+        "200",
+        "1",
+        "ЛР 05 — браузерний потік; GET: 200; marker=None; comments children=2"
+      ]
+    ],
+    "violation_console": [
+      "[info] Loading the image 'http://localhost:4173/x.png' violates the following Content Security Policy directive: \"img-src 'self'\". The policy is report-only, so the violation has been logged but no further action has been taken."
+    ],
+    "violation_net": [
+      {
+        "status": 404,
+        "failed": "net::ERR_BLOCKED_BY_ORB",
+        "blocked": ""
+      }
+    ]
+  },
+  "enforce": {
+    "commit": "87adbca",
+    "flow_console": [
+      "[error] Failed to load resource: the server responded with a status of 401 (Unauthorized)"
+    ],
+    "doc_headers": {
+      "/auth-lab.html": {
+        "content-security-policy": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
+        "referrer-policy": "no-referrer",
+        "x-content-type-options": "nosniff"
+      },
+      "/": {
+        "content-security-policy": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
+        "referrer-policy": "no-referrer",
+        "x-content-type-options": "nosniff"
+      },
+      "/browser-lab.html": {
+        "content-security-policy": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
+        "referrer-policy": "no-referrer",
+        "x-content-type-options": "nosniff"
+      }
+    },
+    "flow_rows": [
+      [
+        "/auth-lab.html",
+        "200",
+        "1",
+        "ЛР 03 — автентифікація"
+      ],
+      [
+        "/",
+        "200",
+        "1",
+        "Навчальний трекер інцидентів"
+      ],
+      [
+        "/browser-lab.html",
+        "200",
+        "1",
+        "ЛР 05 — браузерний потік; GET: 200; marker=None; comments children=2"
+      ]
+    ],
+    "violation_console": [
+      "[error] Loading the image 'http://localhost:4173/x.png' violates the following Content Security Policy directive: \"img-src 'self'\". The action has been blocked."
+    ],
+    "violation_net": [
+      {
+        "status": null,
+        "failed": "",
+        "blocked": "csp"
+      }
+    ],
+    "mask": {
+      "marker": null,
+      "desc_children": 1,
+      "console": [
+        "Executing inline event handler violates the following Content Security Policy directive 'script-src 'self''. Either the 'unsafe-inline' keyword, a hash ('sha256-...'), or a nonce ('nonce-...') is required to enable inline execution. Note that hashes do not apply to event handlers, style attributes and javascript: navigations unless the 'unsafe-hashes' keyword is present. The action has been blocked."
+      ]
+    }
+  }
+}

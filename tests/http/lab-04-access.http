@@ -1,0 +1,50 @@
+@host = http://localhost:5080
+@aliceId = 20000000-0000-0000-0000-000000000001
+@bobId = 20000000-0000-0000-0000-000000000002
+@commentBobId = 30000000-0000-0000-0000-000000000002
+@commentInternalId = 30000000-0000-0000-0000-000000000003
+
+### Alice login; REST Client reads process environment (пароль у файл не записується)
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "userName": "alice", "password": "{{$processEnv SeedUsers__Password}}" }
+
+### Own details
+GET {{host}}/api/incidents/{{aliceId}}
+Accept: application/json
+
+### Foreign details with the same Alice cookie (IDOR/BOLA PoC)
+GET {{host}}/api/incidents/{{bobId}}
+Accept: application/json
+
+### Foreign child resource: comment of Bob's incident
+GET {{host}}/api/incident-comments/{{commentBobId}}
+Accept: application/json
+
+### Internal comment on Alice's own incident (Reporter must not see it)
+GET {{host}}/api/incident-comments/{{commentInternalId}}
+Accept: application/json
+
+### Vertical: Reporter tries privileged triage
+POST {{host}}/api/incidents/{{aliceId}}/triage
+
+### Bob login changes current identity
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "userName": "bob", "password": "{{$processEnv SeedUsers__Password}}" }
+
+### Own details
+GET {{host}}/api/incidents/{{bobId}}
+Accept: application/json
+
+### Morgan login; Analyst read
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "userName": "morgan", "password": "{{$processEnv SeedUsers__Password}}" }
+
+### Permitted Analyst read (A-03R)
+GET {{host}}/api/incidents/{{aliceId}}
+Accept: application/json
