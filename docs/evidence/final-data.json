@@ -1,0 +1,63 @@
+{
+  "commit": "3540524",
+  "rows": [
+    [
+      "Marker-запис Alice: #description",
+      "children=0, marker=null",
+      "так"
+    ],
+    [
+      "IncidentComment.Text (seed ...0005): #comments",
+      "p-елементів=2, marker=null",
+      "так"
+    ],
+    [
+      "Легітимний текст: apostrophe-quotes",
+      "дочірніх елементів=0, видимий текст = значення API: True",
+      "так"
+    ],
+    [
+      "Легітимний текст: angle-brackets",
+      "дочірніх елементів=0, видимий текст = значення API: True",
+      "так"
+    ],
+    [
+      "Легітимний текст: unicode",
+      "дочірніх елементів=0, видимий текст = значення API: True",
+      "так"
+    ],
+    [
+      "Легітимний текст: html-like",
+      "дочірніх елементів=0, видимий текст = значення API: True",
+      "так"
+    ],
+    [
+      "Легітимний текст: long-3900",
+      "дочірніх елементів=0, видимий текст = значення API: True",
+      "так"
+    ]
+  ],
+  "dom_test": {
+    "passed": true,
+    "failures": []
+  },
+  "safe_url": [
+    "https://example.com/a",
+    "http://localhost:5080/incidents/1",
+    "null",
+    "null",
+    "null",
+    "http://localhost:5080/incidents/1",
+    "null"
+  ],
+  "morgan": {
+    "status": "GET: 200",
+    "marker": null,
+    "children": 0
+  },
+  "curl_4173": "HTTP/1.1 200 OK\nContent-Type: application/json; charset=utf-8\nDate: Mon, 09 Nov 2026 13:56:05 GMT\nServer: Kestrel\nAccess-Control-Allow-Credentials: true\nAccess-Control-Allow-Origin: http://localhost:4173\nTransfer-Encoding: chunked\nX-Content-Type-Options: nosniff\nReferrer-Policy: no-referrer\nContent-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
+  "curl_4174": "HTTP/1.1 200 OK\nContent-Type: application/json; charset=utf-8\nDate: Mon, 09 Nov 2026 13:56:05 GMT\nServer: Kestrel\nTransfer-Encoding: chunked\nX-Content-Type-Options: nosniff\nReferrer-Policy: no-referrer\nContent-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
+  "curl_page": "HTTP/1.1 200 OK\nContent-Length: 823\nContent-Type: text/html\nDate: Mon, 09 Nov 2026 13:56:05 GMT\nServer: Kestrel\nAccept-Ranges: bytes\nETag: \"1dd704f06375537\"\nLast-Modified: Mon, 09 Nov 2026 13:34:20 GMT\nX-Content-Type-Options: nosniff\nReferrer-Policy: no-referrer\nContent-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
+  "preflight_4173": "HTTP/1.1 204 No Content\nDate: Mon, 09 Nov 2026 13:56:05 GMT\nServer: Kestrel\nAccess-Control-Allow-Credentials: true\nAccess-Control-Allow-Headers: X-Lab-Cors-Probe\nAccess-Control-Allow-Methods: GET\nAccess-Control-Allow-Origin: http://localhost:4173\nX-Content-Type-Options: nosniff\nReferrer-Policy: no-referrer\nContent-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
+  "preflight_4174": "HTTP/1.1 204 No Content\nDate: Mon, 09 Nov 2026 13:56:05 GMT\nServer: Kestrel\nX-Content-Type-Options: nosniff\nReferrer-Policy: no-referrer\nContent-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+}
