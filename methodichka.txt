@@ -1,0 +1,3226 @@
+62
+Лабораторна робота 05 · SecureLab
+Сторінка 1
+Лабораторна робота № 5. Безпека браузера: XSS, DOM 
+і межі CORS
+Методичні рекомендації
+Почніть із власного завершеного стану v0.4.0. Додаткову інфраструктуру надано у lab-05-
+scaffold.zip.
+Комплект цієї роботи містить PDF, Word і каталог resources/ із готовими навчальними файлами. 
+Збережіть їх поруч. Шлях resources/… відраховується від папки з PDF; він надрукований поруч 
+із посиланням. Якщо каталогу немає, завантажте повний комплект цієї роботи з Moodle. Архів 
+початкового проєкту або scaffold розпаковуйте окремо за інструкцією. Навчальний приклад 
+пояснює дію; спільний сценарій 2-A виконайте самостійно у власному накопичувальному 
+проєкті.
+Зміст
+1. Мета та результати роботи — с. 2
+2. Передумови та початковий стан — с. 3
+3. Теоретичні відомості — с. 4
+4. Практична частина — с. 14
+    Критерії оцінювання — с. 14
+    Що виконати на кожному рівні — с. 15
+    Робоче середовище — IDE, збирання та запуск — с. 19
+5. Індивідуалізація — с. 56
+6. Подання та захист — с. 57
+7. Додаток А. Стартові стани та встановлення scaffold — с. 59
+8. Додаток Б. Предметний контракт baseline 2-A — с. 60
+Розташування файлів і супровідних інструкцій — с. 62
+
+Лабораторна робота 05 · SecureLab
+Сторінка 2
+1. Мета та результати роботи
+Дисципліна: «Прикладні технології програмування в інформаційній безпеці»
+Змістовий модуль: 2 — «Контроль доступу, безпека браузера та комплексне посилення 
+захищеності системи»
+Підтримка в аудиторії: лабораторні пари — за розкладом; якщо пару скасовано — виконуйте 
+роботу самостійно за цією методичкою, а питання надсилайте в Moodle.
+Підсумковий тег: v0.5.0
+Призначення роботи
+У ЛР 4 сервер уже перевіряє, чи має автентифікований користувач право на дію. Проте після 
+відповіді API дані ще потрапляють у самостійне середовище виконання — браузер. Він будує 
+DOM, виконує JavaScript, автоматично надсилає деякі credentials і застосовує власні мережеві 
+політики. Отже, коректна серверна авторизація не робить безпечним спосіб, у який браузер 
+інтерпретує текст.
+Ви простежите один потік даних від поля форми або URL до DOM, безпечно відтворите 
+локальний XSS-сценарій і усунете його в правильній точці — на межі інтерпретації даних 
+браузером. Штатний API разом із браузерним клієнтом працює на http://localhost:5080; для 
+окремого CORS-досліду ви самостійно піднімете дозволений навчальний probe на 
+http://localhost:4173 і недозволений контрольний probe на http://localhost:4174. На цьому 
+стенді перевірите, як actual origin впливає на доступ JavaScript до cross-origin response, 
+дослідите CORS preflight і налаштуєте точний allowlist. Наприкінці, для вищих рівнів, застосуєте 
+CSP та кілька browser security headers як додаткові, а не єдині захисти.
+Робота виконується винятково на локальному навчальному стенді, зі штучними обліковими 
+записами й даними спільного навчального набору. Заборонено перевіряти зовнішні сайти, 
+надсилати дані на сторонній host, збирати cookie/token або застосовувати руйнівний payload.
+Результати навчання
+Після виконання роботи студент або студентка вміє:
+• користуватися панелями DevTools Elements, Console, Network і Application/Storage;
+• відрізняти текстові дані від HTML-коду та показати шлях source → transformations → sink;
+• пояснити, чому текст, отриманий із БД або API, може залишатися недовіреним;
+• відтворити контрольований stored або DOM-based XSS PoC і зафіксувати стан «до»;
+• для звичайного тексту застосувати textContent, createElement та безпечні властивості 
+замість innerHTML;
+• обґрунтувати, коли продукт справді потребує sanitizer, а коли HTML взагалі не слід приймати;
+• розрізняти stored, reflected і DOM-based XSS;
+• визначити origin за схемою, host і port;
+• для «Добре» й «Відмінно» — знайти preflight у Network та пояснити його request/response 
+headers;
+• налаштувати CORS на точний перелік дозволених browser origins;
+• пояснити, чому CORS не є authentication, authorization або CSRF-захистом;
+• для вищих рівнів застосувати CSP і пов’язані headers як defense in depth;
+• зберегти відтворюваний XSS-regression сценарій і тег v0.5.0.
+
+Лабораторна робота 05 · SecureLab
+Сторінка 3
+Структура методики
+Читайте розділи в наведеному порядку. Кожен наступний розділ використовує артефакти 
+попереднього.
+Розділ
+Зміст
+Результат
+Теоретичні відомості
+модель source-to-sink, XSS, origin, 
+CORS і browser headers
+зрозуміло межі інтерпретації даних 
+браузером
+Практична частина
+підготовка стенда, карта flow, PoC, 
+safe DOM, CORS, CSP і регресії
+створено й перевірено захищений 
+fixed state
+Індивідуалізація
+спільні параметри XSS-сценарію
+визначено поля, привілейованого 
+глядача й заборону formatted HTML
+Подання та захист
+артефакти, подання, захист і 
+контрольні питання
+зібрано доказовий комплект і 
+підготовлено захист
+2. Передумови та початковий стан
+Вихідні матеріали та умови початку
+До початку роботи опрацюйте розділ 3 «Теоретичні відомості». Якщо fetch, DOM і панель 
+Network ще викликають труднощі, повторіть міст «HTML → DOM → fetch → DevTools» із 
+методичних рекомендацій ЛР 1 (розділ 10 і приклад до нього).
+Для CORS-стенда потрібен Python 3 із модулем http.server і вільні локальні порти 4173 та 
+4174. На macOS, Linux або в Git Bash запускайте probes командою python3 -m http.server …; у 
+Windows PowerShell чи Command Prompt використовуйте еквівалентну команду py -3 -m 
+http.server …. Точні команди для обох портів наведено в етапі 3.
+Почніть зі справного fixed state ЛР 4 у власному кумулятивному проєкті: застосунок будується, 
+local PostgreSQL containers запускаються, reset/seed відтворює Alice, Bob і Morgan (Analyst), 
+authentication та authorization лишаються робочими, а browser client виконує list або details flow. 
+Створіть гілку lab/5-browser-xss; не змінюйте тег v0.4.0. Якщо цей стан не завершено або 
+зламано, спершу завершіть чи відновіть ЛР 4; наданий клієнт використовує успадковані 
+protected create/read routes, а XSS/CORS ви досліджуєте в ЛР 5.
+Основний потік ЛР 5 — Incident.Description; для доброго рівня додається 
+IncidentComment.Text. Обидва є звичайним текстом. Надана форма створює новий інцидент 
+через успадкований protected POST /api/incidents, потім читає його через GET 
+/api/incidents/{id}. Власний update endpoint для старту не потрібний. Контрольний #lab05-
+marker-target уже є у scaffold. Канонічний harmless marker (resources/lab05-marker.txt) — копіюйте 
+його лише з цього однорядкового файла — змінює лише атрибут цього елемента, не читає 
+credentials і не надсилає зовнішніх запитів.
+Наданий scaffold уже містить контрольований unsafe source-to-sink flow. Студент самостійно 
+знаходить sink, відтворює harmless marker, фіксує стан «до» й виправляє відображення, 
+зберігаючи authentication та authorization. API origin — http://localhost:5080; probes — 
+http://localhost:4173 і http://localhost:4174. Завершений тег не містить небезпечного 
+rendering.
+
+Лабораторна робота 05 · SecureLab
+Сторінка 4
+Маршрут читання та подання
+Спершу оберіть рівень за критеріями оцінювання і таблицею «Що виконати на кожному рівні» 
+на початку практичної частини. Повні критерії наведено саме там.
+1. Прочитайте спільні параметри й теорію; виконайте самоперевірку fetch → JSON → DOM. За 
+прогалинами повторіть міст ЛР 1.
+2. Пройдіть Етап 1 до нормального GET:200, зіставте його з заповненим зразком карти 
+(resources/examples/title-source-to-sink.md). Зразок про безпечну назву; карту оцінюваного опису 
+складаєте самі.
+3. Етап 2: зафіксуйте один marker, дані до/після, unsafe та safe DOM. Стан після CSP не 
+замінює доказ виправлення sink.
+4. Етап 3: виконайте прості probes і direct HTTP; preflight, cookie-дослід і письмовий review — 
+для «Добре» та «Відмінно». Етап 4: регресія, Git, а для вищих рівнів — CSP і headers.
+5. Зберіть лише DEL-01, DEL-02, DEL-03. Готові файли і команди (resources/copyable/README.md) — 
+допоміжні матеріали; окремої здачі навчальних демо немає.
+У Moodle відкрийте завдання саме WEB ЛР 5 і прикріпіть доказовий комплект DEL-01 та звіт 
+DEL-03; для DEL-02 додайте приватне посилання з доступом викладача або Git bundle з гілкою, 
+main і тегом. Якщо поле Moodle приймає лише файли, посилання й hashes вкажіть у звіті. 
+Перевірте прикріплені файли та підтвердження надсилання у своєму інтерфейсі. В усіх діє 
+спільний сценарій 2-A, нового номера варіанта не призначають. Порядок дистанційного захисту 
+визначено окремо.
+Генеративний ШІ дозволено з обов’язковою авторською адаптацією та інтерпретацією: 
+перевірте код на власному стенді й поясніть рішення. Вкажіть сервіс, що він допоміг зробити, 
+вашу перевірку й адаптацію в DEL-03; якщо ШІ не використовували — зазначте це. Окремого 
+нового журналу не потрібно.
+Для додаткового читання за бажанням: лекція 11 «Браузер як середовище виконання та XSS» і 
+лекція 12 «Origin, CORS, CSRF і засоби захисту браузера». Вони не замінюють наведеної 
+процедури й не є передумовою достатнього рівня.
+3. Теоретичні відомості
+Терміни, які трапляються далі
+Термін
+Зміст
+text node (текстовий вузол)
+вузол DOM, що містить лише символи; браузер показує їх як є й не 
+розбирає як HTML
+inline event handler
+JavaScript, записаний просто в HTML-атрибуті на кшталт onerror="…" або 
+onclick="…"
+site
+схема + реєстрований домен без порту; http://localhost:4173 і 
+http://localhost:5080 — різні origins, але той самий site. На рівні site 
+працює cookie-атрибут SameSite
+credentials (у браузері)
+те, що браузер додає до запиту сам: насамперед cookie сеансу
+clickjacking
+чужа сторінка вбудовує вашу в невидимий <iframe> і змушує користувача 
+клацнути по ній, не помічаючи цього
+
+Лабораторна робота 05 · SecureLab
+Сторінка 5
+Термін
+Зміст
+MIME sniffing
+браузер «вгадує» тип вмісту за байтами відповіді замість заголовка 
+Content-Type
+referrer
+адреса сторінки, з якої виконано перехід або запит; передається в 
+заголовку Referer
+defense in depth
+кілька незалежних шарів захисту: якщо один не спрацював, наслідки 
+обмежує інший
+DocumentFragment
+тимчасовий контейнер вузлів поза документом: у ньому збирають 
+елементи, а потім вставляють усі разом
+JavaScript: окремо запит, HTTP-результат і тіло
+У цій роботі ви читаєте короткий готовий JavaScript (browser-lab.js — 31 рядок) і змінюєте в 
+ньому кілька рядків. Писати клієнт із нуля не потрібно. Конструкції, які там трапляються:
+Запис у JavaScript
+Що означає
+Найближча аналогія в 
+C++
+const a = 1; let b = 2;
+ім’я, яке не можна / можна переприсвоїти; 
+тип не вказують
+const auto a = 1; 
+auto b = 2;
+`GET: ${response.status}`
+шаблонний рядок у зворотних лапках; ${…} 
+підставляє значення виразу
+"GET: " + 
+std::to_string(status
+)
+const id = () => вираз;
+стрілкова функція без параметрів, яка 
+повертає значення виразу
+auto id = [] { return 
+…; };
+async (event) => { … } або 
+async event => { … }
+стрілкова функція з тілом; async дозволяє 
+await усередині
+лямбда
+(response) => ({ status: 
+response.status })
+функція, що повертає об’єкт; круглі дужки 
+навколо { … } обов’язкові, інакше це був би 
+блок коду
+лямбда, що повертає 
+структуру
+a ?? b
+a, якщо воно не null і не undefined, інакше 
+b
+a.value_or(b) для 
+std::optional
+for (const item of items) 
+{ … }
+обхід елементів масиву
+for (const auto& item 
+: items)
+document.querySelector("#d
+escription")
+перший елемент сторінки за CSS-
+селектором; #name — пошук за id; якщо 
+елемента немає, результат null
+пошук вузла, що 
+повертає вказівник
+element.addEventListener("
+click", load)
+зареєструвати функцію load; браузер 
+викличе її пізніше, коли станеться подія
+callback
+event.currentTarget.elemen
+ts.title.value
+форма, на якій спрацювала подія → її поле 
+з name="title" → уведений текст
+—
+JSON.stringify(obj) / await 
+response.json()
+об’єкт → текст JSON / текст JSON із тіла 
+відповіді → об’єкт
+серіалізація й розбір
+
+Лабораторна робота 05 · SecureLab
+Сторінка 6
+Запис у JavaScript
+Що означає
+Найближча аналогія в 
+C++
+try { … } catch (error) 
+{ … }
+як у C++; відхилений Promise під await стає 
+винятком
+try/catch
+У стрілкової функції з одним простим параметром дужки необов’язкові: async event => 
+{ ... } у browser-lab.js і async (event) => { ... } означають те саме. З двома параметрами 
+або без них дужки потрібні. Готові Console-фрагменти теорії є в ресурсних прикладах 
+(resources/copyable/README.md).
+Promise і await. Асинхронна функція не чекає результату, а одразу повертає Promise — об’єкт 
+«результат буде пізніше» (близько до std::future). await призупиняє лише ту async-функцію, у 
+якій стоїть; код, що викликав її, виконується далі. Вставте в Console (як відкрити Console і що 
+робити, якщо браузер блокує вставлення, пояснено в Етапі 1, кроці 2 практичної частини); 
+готовий файл — resources/copyable/example-01.js:
+function later(value, ms) {
+  return new Promise((resolve) => setTimeout(() => resolve(value), ms));
+}
+async function main() {
+  console.log("1: before");
+  const promise = later("done", 100);
+  console.log("2:", promise instanceof Promise);
+  const value = await promise;
+  console.log("3:", value);
+}
+main();
+console.log("4: main returned");
+Вивід:
+1: before
+2: true
+4: main returned
+3: done
+Рядок 4 з’явився раніше за рядок 3: main() повернула керування, щойно дійшла до await, а 
+продовжилася через 100 мс, коли Promise отримав значення. Запис promise.then(f) означає 
+те саме іншими словами: «коли результат буде готовий, виклич f із ним»; у пробах Етапу 3 
+.then(async (response) => ({ … })) збирає статус і тіло відповіді в один об’єкт. У DevTools 
+Console await можна писати й поза async-функцією — це зручність самої Console.
+fetch має три різні результати:
+Ситуація
+Що стається з 
+Promise
+Що бачить код
+сервер відповів 200
+виконано
+response.ok === true, response.status === 
+200
+сервер відповів 400/401/404/500
+теж виконано
+response.ok === false; код потрапляє не в 
+catch, а в гілку if (!response.ok)
+відповіді немає: API не запущено 
+або браузер заблокував читання 
+через CORS
+відхилено
+catch отримує TypeError: Failed to fetch 
+— однаковий для обох причин, тому причину 
+шукайте в Network і Console
+
+Лабораторна робота 05 · SecureLab
+Сторінка 7
+Response — це ще не дані: тіло читають окремим await response.json() (розібраний об’єкт) 
+або await response.text() (рядок).
+Якщо Chrome блокує вставлення, див. абзац «Вставлення коду» в Етапі 1, кроці 2 практичної 
+частини та рисунок 4. Перед пробою очистьте Console кнопкою : сторонні 401/404 пояснено 
+⊘
+перед пробою «той самий рядок як HTML і як текст».
+Це повна окрема проба в DevTools Console на відкритій сторінці вашого локального 
+застосунку, де вже працює публічний /health. Нічого не вставляйте в Incident endpoint. Готовий 
+файл — resources/copyable/example-02.js; копіюйте з нього весь блок, щоб уникнути 
+переносу між сторінками PDF:
+async function inspectHealth() {
+    try {
+        const response = await fetch("/health", { cache: "no-store" });
+        const body = await response.text();
+        console.log("status", response.status);
+        console.log("ok", response.ok);
+        console.log("body", body);
+        if (!response.ok) {
+            console.log("HTTP response received, but it is not successful.");
+        }
+    } catch (error) {
+        console.log("Response unavailable; inspect Network and Console.");
+    }
+}
+inspectHealth();
+Для справного baseline очікуємо status 200, ok true і JSON-тіло {"status":"ready"}: саме його 
+повертає /health у starter, якщо API може з’єднатися з БД. Цей діагностичний приклад читає 
+тіло як text, тож показує JSON без перетворення на об’єкт. Якщо БД недоступна, перевіряйте 
+status і повідомлення проблеми; не підставляйте очікуваний успішний текст. Тут виводиться 
+лише публічна діагностична відповідь; не переносіть повне журналювання body на login або 
+інші чутливі endpoints.
+Тіло відповіді — потік, який можна прочитати лише раз: другий виклик text() або json() для 
+того самого Response завершується помилкою TypeError: … body stream already read. 
+Збережіть прочитане значення у змінній і використовуйте її.
+Браузер як середовище виконання
+Браузерний клієнт — не лише «зображення» поверх API, а окреме середовище виконання. 
+Браузер розбирає HTML, будує DOM, виконує JavaScript, обробляє події, зберігає browser 
+storage, ініціює мережеві запити й застосовує власні політики безпеки. До деяких запитів він 
+автоматично додає credentials, наприклад придатну для target cookie. Серверна перевірка 
+доступу тому не визначає, чи безпечно клієнт вставить отримане значення в документ.
+Ключовим є контекст інтерпретації. Той самий рядок браузер може сприйняти як звичайний 
+текст, значення атрибута, URL, HTML-структуру або код. Якщо контрольований користувачем 
+рядок потрапляє в HTML чи code context через небезпечну операцію, його символи можуть 
+стати синтаксисом, а не даними.
+Основна модель
+недовірене джерело
+  → request JSON → DTO → PostgreSQL → response JSON
+  → JavaScript transform → DOM sink
+  → браузер інтерпретує результат у конкретному контексті
+Сховище не змінює походження значення: текст, який колись ввів користувач, не стає trusted 
+після запису до PostgreSQL. Так само JSON-серіалізація, DTO або перевірка допустимої 
+
+Лабораторна робота 05 · SecureLab
+Сторінка 8
+довжини не перетворюють недовірене значення на безпечну HTML-розмітку. Для звичайного 
+текстового поля належний результат — DOM text node; браузер не повинен розбирати 
+значення як HTML. innerHTML сам по собі не заборонений для trusted static template, але він є 
+небезпечним sink, коли в його рядок потрапляють недовірені дані.
+штатний browser client + API: http://localhost:5080
+навчальний probe A: http://localhost:4173 --fetch--> API: http://localhost:5080
+контрольний probe B: http://localhost:4174 --fetch--> API: http://localhost:5080
+           │                                      │
+           └──── browser applies SOP/CORS ─────────┘
+API authorization still evaluates principal + action + resource.
+Основний робочий flow є same-origin: браузерний клієнт і API разом віддають застосунок на 
+http://localhost:5080. Cross-origin сценарій у цій роботі створюють навмисно лише для 
+спостереження: студент окремо запускає probes http://localhost:4173 і 
+http://localhost:4174, але не перетворює їх на нову архітектуру продукту.
+Джерела, перетворення і DOM sinks
+Джерело (source) — місце, звідки програма отримує потенційно недовірене значення. Типові 
+browser sources:
+• поле форми або інший user input;
+• URL, зокрема query і fragment (location.hash);
+• API response;
+• значення з БД, яке раніше ввів користувач;
+• postMessage, browser storage або third-party API.
+Перетворення (transformation) — передавання, відбір, конкатенація, форматування, mapping 
+чи зберігання значення між source і sink. Сам факт перетворення не є очищенням: для 
+висновку треба назвати конкретну операцію та довести її властивість.
+Sink — операція, у якій значення набуває певної інтерпретації. Небезпечними для недовірених 
+даних можуть бути:
+• innerHTML, outerHTML та insertAdjacentHTML;
+• формування inline event handler або script зі string;
+• eval, new Function та подібні dynamic code executors;
+• запис неперевіреного URL до href чи src;
+• вставлення даних в атрибут без урахування його семантики.
+Натомість textContent і createTextNode створюють текстовий вузол, а createElement дає змогу 
+явно побудувати структуру. Операція є безпечною не через назву сама по собі, а коли 
+відповідає потрібному контексту та не переводить недовірені дані в HTML, URL або code 
+context.
+Карта source → transformations → sink має доводити шлях одного конкретного значення. 
+Простого пошуку слова innerHTML недостатньо: потрібно встановити фактичне request field, 
+response field, JavaScript transform, DOM operation і контекст інтерпретації.
+Stored, reflected і DOM-based XSS
+Міжсайтове виконання сценарію (Cross-Site Scripting, XSS) виникає, коли недовірені дані 
+досягають browser sink в інтерпретованому контексті, а браузер сприймає їх як розмітку або 
+код.
+
+Лабораторна робота 05 · SecureLab
+Сторінка 9
+Тип
+Як значення доходить до sink
+Навчальний приклад
+Reflected XSS
+значення поточного request швидко повертається у 
+response або DOM без попереднього тривалого 
+зберігання
+пошуковий параметр виведено 
+як HTML
+Stored XSS
+значення спочатку зберігається, а під час 
+наступного перегляду повертається до 
+небезпечного sink
+comment або description 
+прочитано з PostgreSQL і 
+вставлено як HTML
+DOM-based 
+XSS
+client-side JavaScript бере значення з URL, storage, 
+response чи іншого source та сам передає його до 
+небезпечного DOM sink
+location.hash передано до 
+innerHTML
+Класи можуть перетинатися. Наприклад, значення може бути stored у БД, а остаточний 
+небезпечний перехід до sink виконуватиме JavaScript у DOM. Для виправлення важливіший 
+доведений потік і конкретний sink, ніж суперечка про одну назву класу.
+У лабораторній роботі harmless marker потрібен лише для підтвердження механізму. Він змінює 
+local DOM у визначених межах, не читає credentials, не виконує зовнішніх network requests, не 
+імітує phishing UI і не спричиняє руйнівної зміни стану.
+Проба в Console: той самий рядок як HTML і як текст
+Перш ніж працювати з даними застосунку, подивіться на механізм на двох окремих елементах. 
+Це не marker лабораторної роботи: проба нічого не зберігає й змінює лише елемент, який сама 
+створила. Відкрийте http://localhost:5080/, DevTools → Console, вставте блок цілком і 
+натисніть Enter (готовий файл — resources/copyable/example-03.js):
+Якщо ви ще не входили, головна сторінка / одразу пробує завантажити список інцидентів, тому 
+в Console вже може бути червоний рядок Failed to load resource: … 401 (Unauthorized) (і 
+404 для favicon.ico). Це не результат вашого прикладу; перед вставленням очистьте Console 
+кнопкою .
+⊘
+{
+  const value = `<img src=x onerror="this.parentNode.dataset.demo='ran'">`;
+  const unsafeBox = document.createElement("div");
+  const safeBox = document.createElement("div");
+  document.body.append(unsafeBox, safeBox);
+  unsafeBox.innerHTML = value;    // рядок розбирає HTML parser
+  safeBox.textContent = value;    // рядок стає одним текстовим вузлом
+  setTimeout(() => {
+    console.log("innerHTML:", unsafeBox.dataset.demo, unsafeBox.children.length);
+    console.log("textContent:", safeBox.dataset.demo, safeBox.children.length);
+    unsafeBox.remove();
+    safeBox.remove();
+  }, 1000);
+}
+Через секунду в Console з’явиться:
+innerHTML: ran 1
+textContent: undefined 0
+Що відбулося з першим елементом:
+1. innerHTML передав рядок HTML parser; той створив справжній елемент <img> (тому 
+children.length дорівнює 1).
+
+Лабораторна робота 05 · SecureLab
+Сторінка 10
+2. Браузер спробував завантажити зображення за адресою x. Такого зображення немає, тому 
+настала подія error.
+3. Атрибут onerror — це inline event handler: його текст браузер виконує як JavaScript. Код із 
+рядка даних записав data-demo="ran" у батьківський елемент.
+У другому елементі той самий рядок став текстовим вузлом: на сторінці було видно символи 
+<img src=x …>, елемент <img> не створено (children.length дорівнює 0), код не виконувався.
+Чому в прикладі <img onerror>, а не <script>: елемент <script>, вставлений через innerHTML, 
+браузер створює, але не виконує. Тому «перевірка» рядком <script>…</script> нічого не 
+покаже, а фільтр, що вирізає слово script, нічого не захищає: обробники подій (onerror, 
+onload, onclick…) виконуються без жодного <script>.
+Якщо в першому рядку виводу ви бачите undefined замість ran, а в Console є повідомлення зі 
+словами Content Security Policy, — на сторінці вже діє CSP з Етапу 4, яка блокує inline 
+handler. Це додатковий шар захисту, а не виправлення: елемент <img> усе одно створено. 
+Якщо поруч є повідомлення зі словами report-only, а вивід — ran 1, CSP лише записала 
+порушення й нічого не заблокувала.
+Контекст виведення і вибір контрзаходу
+Контрзахист обирають за тим, як браузер має використати значення:
+Потрібний 
+контекст
+Безпечний підхід
+Небезпечна підміна
+текстовий 
+вузол
+побудувати елемент через createElement, 
+передати значення в textContent або 
+createTextNode
+конкатенувати значення в HTML-string 
+для innerHTML
+значення 
+атрибута
+обрати дозволений атрибут і встановити його 
+через відповідну DOM property або 
+setAttribute; окремо перевірити семантику 
+значення
+дозволяти runtime-імена атрибутів, 
+on*, srcdoc або вважати будь-який 
+setAttribute універсально 
+безпечним
+URL
+розібрати URL, дозволити лише потрібні 
+protocols і, за потреби, hosts; лише після 
+цього встановити href/src
+приймати javascript: чи інший 
+protocol лише тому, що значення 
+встановлено DOM API
+JavaScript/
+code
+не будувати код із недовіреного string; 
+передавати дані як дані й викликати 
+заздалегідь визначену функцію
+eval, new Function, string handler або 
+вставлення значення в script
+Для plain text sanitizer не потрібен: перетворення тексту на HTML лише збільшує поверхню 
+атаки. Очисник розмітки (sanitizer) справді потрібен, коли продуктова вимога явно дозволяє 
+користувачеві обмежене форматування, команда визначила allowlist елементів, атрибутів і URL 
+protocols, а підтримувана бібліотека та її конфігурація покриті тестами. Власний sanitizer на 
+regular expression не може надійно відтворити правила HTML parser і різних контекстів.
+Backend validation обмежує business format, довжину чи допустимі значення, але не замінює 
+безпечне виведення. Блокування одного слова або payload, зокрема <script>, залишає інші 
+HTML-елементи, event attributes, URL schemes і способи побудови DOM.
+
+Лабораторна робота 05 · SecureLab
+Сторінка 11
+Походження вебресурсу, origin і same-origin policy
+Походження вебресурсу (origin) визначає комбінація scheme + host + port. Path, query і 
+fragment до origin не належать. Якщо хоча б один із трьох компонентів відрізняється, origins 
+різні:
+• https://example.com і http://example.com — різні через scheme;
+• https://example.com і https://api.example.com — різні через host;
+• http://localhost:5000 і http://localhost:5173 — різні через port.
+Політика однакового походження (same-origin policy, SOP) обмежує взаємодію document або 
+script одного origin з resource іншого origin. Для типового fetch це насамперед означає, що 
+browser code не може довільно прочитати cross-origin response. SOP не гарантує, що кожний 
+cross-origin request узагалі не буде надісланий.
+Origin не тотожний site. Наприклад, два порти localhost утворюють різні origins, але це саме по 
+собі не доводить cross-site поведінку cookie. У цій роботі розрізнення потрібне, щоб не робити з 
+CORS хибний висновок про повну модель CSRF.
+CORS і передзапит preflight
+Cross-Origin Resource Sharing (CORS) — механізм HTTP headers, за яким сервер оголошує, 
+якому browser code з іншого origin дозволено читати response, а браузер застосовує це 
+рішення. У базовому проєкті API та клієнт віддають один застосунок із http://localhost:5080, 
+а Client/app.js виконує відносні запити на кшталт fetch("/api/incidents"). Якщо просто 
+віддати ту саму папку Client з іншого порту, відносний fetch піде до цього статичного сервера, 
+а не автоматично до API. Тому відтворюваний CORS-стенд використовує окремий probe з 
+абсолютною адресою API.
+Для певних cross-origin requests браузер автоматично ініціює передзапит CORS (preflight) — 
+OPTIONS request до target URL перед actual request. JavaScript-код не повинен вручну підміняти 
+його власним OPTIONS. Preflight містить:
+• Origin — origin сторінки-ініціатора;
+• Access-Control-Request-Method — method запланованого actual request;
+• Access-Control-Request-Headers — перелік нестандартних request headers, якщо вони 
+потрібні actual request.
+Сервер відповідає CORS headers, зокрема Access-Control-Allow-Origin, а для preflight — 
+потрібними Access-Control-Allow-Methods і Access-Control-Allow-Headers. Успішний preflight 
+дозволяє браузеру перейти до actual request; невдала відповідь зазвичай зупиняє цей перехід. 
+Натомість simple cross-origin request може дійти до API, хоча браузер не відкриє його response 
+calling script.
+Який запит «простий», а який потребує preflight. Простий (simple) запит — це GET, HEAD або 
+POST, у якому код сторінки не додав жодного заголовка, крім кількох безпечних: Accept, Accept-
+Language, Content-Language і Content-Type зі значенням text/plain, multipart/form-data або 
+application/x-www-form-urlencoded. Цей перелік називають CORS-safelisted. Будь-який інший 
+заголовок (наприклад, X-Lab-Cors-Probe або Content-Type: application/json) чи метод PUT, 
+PATCH, DELETE робить запит «непростим»: перед ним браузер сам надсилає preflight.
+Як виглядає обмін. Сторінка http://localhost:4173/ виконує 
+fetch("http://localhost:5080/health", { headers: { "X-Lab-Cors-Probe": "stage-3" } }), 
+а policy дозволяє цей origin. У Network буде два записи:
+OPTIONS /health HTTP/1.1                       ← preflight, його надіслав браузер
+Host: localhost:5080
+Origin: http://localhost:4173
+
+Лабораторна робота 05 · SecureLab
+Сторінка 12
+Access-Control-Request-Method: GET
+Access-Control-Request-Headers: x-lab-cors-probe
+HTTP/1.1 204 No Content
+Access-Control-Allow-Origin: http://localhost:4173
+Access-Control-Allow-Methods: GET
+Access-Control-Allow-Headers: X-Lab-Cors-Probe
+GET /health HTTP/1.1                           ← actual request, його надіслав fetch
+Host: localhost:5080
+Origin: http://localhost:4173
+X-Lab-Cors-Probe: stage-3
+HTTP/1.1 200 OK
+Access-Control-Allow-Origin: http://localhost:4173
+Content-Type: application/json; charset=utf-8
+{"status":"ready"}
+Якщо той самий fetch виконати зі сторінки http://localhost:4174/, відповідь на OPTIONS не 
+міститиме жодного заголовка Access-Control-*. Браузер вважає такий preflight невдалим, GET 
+не надсилає, а fetch завершується помилкою. Отже, для успіху preflight потрібні узгоджені 
+дозволи origin, запланованого методу й заголовків (і credentials, якщо їх запитано); самого 
+статусу 204 чи лише Allow-Origin недостатньо.
+CORS:
+• контролює доступ browser JavaScript до cross-origin response;
+• не автентифікує користувача, не перевіряє ownership і не замінює authorization;
+• не обмежує curl, Postman або server-to-server client, бо SOP застосовує браузер;
+• не усуває XSS і не є повним CSRF-захистом;
+• не гарантує, що simple state-changing request не буде надісланий.
+Коли cross-origin запит має містити browser credentials, сервер указує конкретний allowed origin і 
+Access-Control-Allow-Credentials: true, а client явно налаштовує credentials для fetch. 
+Значення wildcard Access-Control-Allow-Origin: * несумісне з credentialed response: браузер 
+не надасть такий response коду сторінки. Динамічно відбивати довільний Origin замість 
+allowlist так само небезпечно.
+CSP і пов’язані browser security headers
+Політика безпеки вмісту (Content Security Policy, CSP) обмежує дозволені джерела ресурсів 
+і деякі способи виконання коду. Директиви на кшталт script-src, style-src, connect-src та 
+img-src формують allowlist для відповідних типів ресурсів. CSP може спочатку працювати 
+через Content-Security-Policy-Report-Only, щоб показати violations без блокування, а після 
+перевірки — через enforcement header Content-Security-Policy.
+CSP є defense in depth: вона може зменшити наслідки частини ін’єкцій, але не робить 
+dangerous sink безпечним. Основне виправлення XSS — не передавати недовірені дані в 
+інтерпретований контекст. Невиправдані unsafe-inline або * послаблюють policy, а коректну 
+policy будують за фактичними ресурсами застосунку й перевіряють на legitimate flow.
+Пов’язані browser controls також мають окремі межі:
+• X-Content-Type-Options: nosniff забороняє browser MIME sniffing для відповідних ресурсів, 
+але не замінює правильний server Content-Type;
+• Referrer-Policy керує обсягом referrer information під час переходів і requests, але не 
+дозволяє безпечно зберігати secrets у URL;
+
+Лабораторна робота 05 · SecureLab
+Сторінка 13
+• директива CSP frame-ancestors визначає, які parent origins можуть вбудовувати сторінку, і 
+зменшує ризик clickjacking; вона не має fallback до default-src і не замінює authorization;
+• cookie attributes, CORS, CSP і headers не замінюють safe DOM rendering або server-side 
+antiforgery control.
+Діагностика browser-сценарію без вгадування
+Спостереження
+Що перевірити
+Наступний крок
+Fetch потрапив у catch
+URL, запущений API, Network та 
+повідомлення Console
+спершу відділити недоступність від 
+CORS; не змінювати політику за одним 
+TypeError
+Є 400/401/403
+status, Content-Type, безпечне 
+body
+це HTTP-відповідь; перевірити контракт, 
+cookie або право, а не оголошувати збій 
+мережі
+OPTIONS є, основного 
+request немає
+Origin, requested method/header і 
+preflight response
+звірити точний origin і allowlist; не 
+додавати випадковий новий header
+У curl читається, у 
+браузері ні
+CORS і credentials конкретного 
+браузерного request
+curl не виконує browser CORS policy
+Запит пішов на порт 
+probe
+відносний URL і origin сторінки
+для cross-origin проби використати 
+передбачений абсолютний URL API
+Auth request дає 401
+cookie, credentials, 
+SameSite/Secure, сеанс
+CORS сам не створює authentication 
+cookie
+CSP заблокувала script
+фактичний CSP header і шлях 
+script
+звірити дозволене джерело; не вимикати 
+CSP цілком заради зеленого тесту
+Висновок про CORS робіть за браузерним спостереженням, preflight і response headers, а про 
+право на ресурс — за серверними перевірками. Два localhost-порти є різними origins, але це не 
+універсальний тест cross-site cookie-поведінки. MDN: Using Fetch.
+Самоперевірка перед початком
+1. Чому поле з PostgreSQL або API response може залишатися source недовірених даних?
+2. Які source, transformations, sink і output context має обраний flow?
+3. За якою ознакою розрізняють stored, reflected і DOM-based XSS та чому класи можуть 
+перетинатися?
+4. Чому для plain text достатньо safe DOM API, а sanitizer потрібен лише за явної продуктової 
+потреби?
+5. Які компоненти утворюють origin і чому два порти localhost дають різні origins?
+6. Хто ініціює preflight і які Access-Control-Request-* headers у ньому описують actual request?
+7. Чому CORS error не доводить, що API не отримав request, і чому CORS не замінює 
+authorization та CSRF control?
+8. Які різні межі мають CSP, nosniff, Referrer-Policy і frame-ancestors?
+Джерела для уточнення API
+• Node: 
+ 
+ textContent
+ 
+ 
+
+Лабораторна робота 05 · SecureLab
+Сторінка 14
+• Element: 
+ 
+ innerHTML
+ 
+ 
+• Cross-Origin Resource Sharing (CORS)
+• Enable Cross-Origin Requests (CORS) in ASP.NET Core
+• Content Security Policy (CSP)
+4. Практична частина
+Критерії оцінювання
+Достатній (мінімальний) рівень відповідає оцінці «Задовільно», добрий — «Добре», відмінний 
+— «Відмінно». Усі рівні накопичувальні: кожен вищий містить увесь попередній. Оберіть рівень 
+до Етапу 1 та вкажіть його в каркасах доказів і звіту.
+Обов’язковий результат для всіх рівнів
+Для зарахування роботи потрібно:
+1. Заповнити карту щонайменше одного потоку source → transformations → storage → 
+response → sink для основного поля Incident.Description.
+2. У власному local vulnerable commit відтворити нешкідливий stored або DOM-based XSS 
+marker, записати першопричину й зберегти доказ стану «до».
+3. Усунути першопричину safe DOM rendering: для звичайного тексту через textContent, 
+createElement або інший контекстно безпечний DOM API, не фільтром слова script.
+4. Повторити той самий marker після fix і довести, що він відображається як звичайний текст; 
+formatted HTML у спільному scope ЛР 5 не дозволено.
+5. Перевірити легітимні складні значення: апостроф, лапки, </>, Unicode і текст максимально 
+допустимої довжини.
+6. Самостійно підняти навчальні probes http://localhost:4173 і http://localhost:4174, 
+налаштувати точний allowlist policy, яка дозволяє лише probe http://localhost:4173, 
+повторити простий запит на http://localhost:4173/ і http://localhost:4174/ і зафіксувати 
+в Network різницю між allowed та disallowed origin.
+7. Виконати той самий HTTP scenario поза браузером і пояснити, чому CORS не зупиняє його.
+8. Зберегти vulnerable та fixed commit hashes і repeatable regression procedure; створювати 
+v0.5.0 тільки після фактичного retest. Перенесіть перевірений стан до main і подайте Git-
+історію через погоджений приватний remote або перевірений Git bundle за порядком подання 
+нижче.
+Повні критерії рівнів
+Рівень і оцінка
+Критерій виконання
+Достатній 
+(«Задовільно»)
+Виконано обов’язковий результат: є повна карта одного flow, safe local PoC, 
+dangerous sink замінено безпечним, той самий marker більше не виконується, 
+legitimate text працює, CORS обмежено точним origin, а browser і direct HTTP results 
+пояснено.
+
+Лабораторна робота 05 · SecureLab
+Сторінка 15
+Рівень і оцінка
+Критерій виконання
+Добрий 
+(«Добре»)
+Додатково перевірено друге поле IncidentComment.Text разом з основним 
+Incident.Description; у DevTools показано preflight; cookie credentials 
+налаштовано без wildcard origin у cookie-профілі цього стенда (Етап 3, крок 5); 
+реалізовано й перевірено базову CSP у enforcement без невиправданого unsafe-
+inline; перевірено X-Content-Type-Options: nosniff, обґрунтовано Referrer-
+Policy і embedding policy; є unified safe render helper та короткий review, що 
+розрізняє XSS, CORS, CSRF і authorization.
+Відмінний 
+(«Відмінно»)
+Додатково є automated browser regression або еквівалентний test, який перевіряє 
+actual DOM; CSP перевірено спочатку в report-only, потім у enforcement mode; 
+поглиблено перевірено другий наданий sink коментарів і повторний DOM render; 
+перевірено URL protocol/attribute context і пояснено, чому для текстового вузла, 
+значення атрибута, URL та JavaScript потрібні різні правила безпечного виведення; 
+описано residual risk third-party scripts. Оскільки formatted HTML у спільному scope не 
+дозволено, HTML-like string в Description і IncidentComment.Text має безпечно 
+відображатися як текст.
+File upload не є частиною цієї роботи: без окремого перевіреного модуля його не додають як 
+«advanced» extension.
+Що виконати на кожному рівні
+Позначки «Для всіх», «Добре / Відмінно», «Відмінно» нижче однаково визначають практичні 
+дії, контрольні точки й докази. Загальні правила коректності, безпечного стенда й заборона 
+formatted HTML діють на кожному рівні. Теорію про CSP і headers для «Задовільно» прочитайте 
+оглядово; практичні перевірки цих засобів починаються з «Добре».
+Рівень 
+(оцінка)
+Що виконати
+Що подати
+Що можна не 
+виконувати
+Достатній 
+«Задовільно»
+Етап 1, кроки 1–6 (крок 1 — з 
+підкроками 1.1–1.7). Етап 2, 
+кроки 1–6 для Description, крім 
+позначених доповнень старших 
+рівнів; обидва знайдені 
+innerHTML (опис і коментарі) 
+замініть safe DOM API. Етап 3, 
+кроки 1–4 і 6–7: прості probes та 
+direct HTTP без credentials. Етап 
+4, кроки 3–5: ручні REG-XSS-01 і 
+REG-CORS-01, retest, Git.
+DEL-01: карта 
+Description, PoC, 
+DB/API/DOM до/після, 
+finding, safe diff, 
+позитивна регресія, 
+обидві REG. DEL-02: 
+vulnerable/fixed hashes, 
+v0.5.0, main та remote 
+або bundle. DEL-03: звіт, 
+відповіді, декларація ШІ.
+Окремий seed-дослід 
+IncidentComment.Text 
+і його рядок у карті 
+(сам sink коментарів 
+виправити потрібно), 
+helper, письмовий 
+review 3.8; preflight і 
+cookie-дослід; 
+CSP/headers 4.1–2; 
+автоматичний DOM-
+тест, URL/атрибут і 
+поглиблені перевірки.
+Добрий 
+(«Добре») — 
+додатково
+Етап 2, крок 4: 
+IncidentComment.Text і єдиний 
+safe helper для двох полів. Етап 
+3, кроки 2 і 4: preflight з обох 
+origins; крок 5: cookie-дослід; крок 
+8: review. Етап 4, кроки 1–2: 
+базова CSP у enforcement, 
+headers і обґрунтування.
+До DEL-01: карта й retest 
+коментаря, helper/diff, 
+preflight, cookie-дослід, 
+фактичні CSP/headers. 
+До DEL-03: короткий 
+review XSS / CORS / 
+CSRF / authorization і 
+пояснення policy.
+Окремі докази режиму 
+report-only (його можна 
+пройти для підготовки); 
+автоматичний DOM-
+тест; поглиблену 
+перевірку comments і 
+повторного render; 
+URL/атрибут; окремий 
+аналіз third-party 
+scripts.
+
+Лабораторна робота 05 · SecureLab
+Сторінка 16
+Рівень 
+(оцінка)
+Що виконати
+Що подати
+Що можна не 
+виконувати
+Відмінний 
+(«Відмінно») 
+— додатково
+Етап 4, крок 1: report-only, потім 
+enforcement з доказами обох. 
+Крок 3: DOM-тест FAIL на 
+vulnerable і PASS на fixed; 
+comments, повторний render і 
+позитивні рядки. Етап 2, крок 4 та 
+Етап 4, крок 3: safe-url.js і 
+пояснення 
+text/attribute/URL/JavaScript; ризик 
+third-party scripts.
+До DEL-01: 
+файл/команда DOM-
+тесту, результати, 
+commits і браузер; 
+обидва режими CSP, 
+comments і повторний 
+render. До DEL-03: 
+пояснення контекстів і 
+залишкового ризику third-
+party scripts.
+Усі наведені 
+доповнення потрібні; 
+новий sink, reflected 
+flow, upload або 
+sanitizer не додавайте.
+Як рухатися самостійно
+Спершу відтворіть один нормальний browser flow. Якщо очікуваний запит або DOM-результат 
+відрізняється, використайте таблицю діагностики в теорії: мережа, HTTP, CORS, cookie та DOM 
+— різні місця перевірки. Не міняйте всі контролі одночасно.
+Контрольні точки нижче дають критерії для самоперевірки; запланований показ на консультації 
+не означає, що незалежні наступні кроки мають чекати відповіді викладача. Якщо потрібна 
+саме погоджена зміна контракту, збережіть питання й не вигадуйте нове правило. Для 
+звернення по допомогу підготуйте команду/дію, ОС і термінал, середовище запуску, очікування, 
+фактичний status або діагностику та останню перевірену точку; вилучіть password, cookie й 
+tokens. Тренувальні приклади не є додатковими обов’язковими артефактами.
+Примітка для Windows. Команди й кроки для Windows наведено за офіційною документацією; 
+на комп’ютері автора вони не перевірялися. Знімки екрана в методичці зроблено в macOS з 
+англійським інтерфейсом: у Windows вікна виглядають дещо інакше, але назви пунктів меню 
+здебільшого ті самі, а там, де вони відрізняються, шлях для Windows наведено в тексті поруч. 
+Якщо результат відрізняється від описаного, зверніться до таблиці діагностики або напишіть 
+викладачу в Moodle, додавши текст помилки.
+Ресурсні додатки — довідкові. Копії команд і кодових прикладів доступні в готових файлах 
+(resources/copyable/README.md); пояснення до кожного фрагмента лишаються в його кроці.
+Етап 1. Browser flow і карта source-to-sink
+Для всіх: кроки 1–6 (крок 1 — з підкроками 1.1–1.7) і CP-01; другий flow карти додається для 
+«Добре / Відмінно» в Етапі 2.
+1. Підготуйте відтворюваний локальний стан
+Починайте від власного перевіреного тегу v0.4.0. Scaffold lab-05-start-v1 лише додає файли 
+до вашого проєкту й нічого у вашому коді не змінює:
+Що з’явиться
+Для чого
+src/SecureLab.Api/Client/browser-
+lab.html, browser-lab.js
+сторінка /browser-lab.html з формою створення 
+інциденту та навмисно небезпечним відображенням 
+тексту
+demonstrations/cors-probe/index.html, 
+probe.js
+статична сторінка для CORS-досліду на портах 4173 і 
+4174
+
+Лабораторна робота 05 · SecureLab
+Сторінка 17
+Що з’явиться
+Для чого
+.scaffolds/lab-05.json
+«квитанція» встановлення: release ID і base commit
+Крок 1.1. Розпакуйте архів. Розпакуйте lab-05-scaffold.zip у каталог поза власним 
+проєктом (наприклад, поруч із ним). Якщо розпакувати архів усередину проєкту, Git побачить 
+нові файли й installer зупиниться з вимогою чистого робочого дерева.
+Крок 1.2. Створіть гілку. У корені власного проєкту (там, де global.json):
+git status --short
+git switch -c lab/5-browser-xss v0.4.0
+Перша команда має нічого не вивести: робоче дерево чисте.
+Перевірте SDK після створення гілки, до installer.
+Установіть останню стабільну .NET 10 SDK з офіційної сторінки Microsoft, у блоці Build apps — 
+SDK, для своєї ОС та архітектури. Runtime окремо не замінює SDK. Не обирайте Preview або 
+RC. Поточний номер випуску змінюється, тому його тут не фіксуємо.
+Якщо ви вже почали з попереднім ZIP або тегом. Збережіть свою роботу; відкрийте наявний 
+global.json у корені власного проєкту й замініть лише об’єкт sdk наведеним нижче. Інші ключі, 
+якщо вони є, збережіть. Так цей об’єкт виглядає в оновленому starter ЛР 1; lab-05-
+scaffold.zip файла global.json не містить і його не змінює:
+{
+  "sdk": {
+    "version": "10.0.100",
+    "rollForward": "latestFeature",
+    "allowPrerelease": false
+  }
+}
+10.0.100 — нижня межа, а не вимога встановити саме цей старий випуск. latestFeature 
+обирає найвищу встановлену стабільну SDK з major/minor 10.0, зокрема зі смуг 1xx, 3xx або 
+4xx; allowPrerelease: false виключає Preview/RC. SDK 9 чи 11 не замінює SDK 10 для цього 
+проєкту. net10.0, версії NuGet, packages.lock.json і .config/dotnet-tools.json залишаються 
+без змін. Правила Microsoft для global.json пояснюють вибір SDK окремо від target framework.
+Дві різні перевірки. В окремому терміналі поза проєктом виконайте:
+dotnet --list-sdks
+Серед рядків має бути стабільна 10.0.… [шлях] без -preview чи -rc. Це перелік SDK, 
+доступних саме цьому виконуваному файлу dotnet, а не доказ вибору проєкту. Потім у корені 
+проєкту з оновленим global.json виконайте:
+dotnet --version
+Очікуйте один номер 10.0.… без суфікса попереднього випуску — найвищу сумісну 
+встановлену SDK. Якщо бачите A compatible .NET SDK was not found, перевірте збережений 
+файл, установлення SDK і шлях до dotnet. Рядок global.json file: у цьому повідомленні 
+показує, який саме файл використав CLI. Якщо повідомлення ще містить Requested SDK 
+version: 10.0.302, залишилася стара копія global.json або команда виконується не в 
+потрібному каталозі. Перевірте поточний каталог і global.json у ньому та вище: CLI шукає цей 
+файл також у батьківських каталогах. Не видаляйте його для обходу помилки.
+
+Лабораторна робота 05 · SecureLab
+Сторінка 18
+Якщо виправили старий файл у Git-проєкті, перегляньте git diff -- global.json, 
+переконайтеся, що diff містить лише політику SDK, і збережіть цю зміну окремим commit. Уже 
+завершений тег попередньої ЛР не пересувайте. Перед installer робоче дерево має бути чисте:
+git add global.json
+git commit -m "Update .NET 10 SDK selection policy"
+git status --short
+Цей блок потрібен лише після фактичної зміни старого файла; для нового незміненого файла 
+commit не потрібний. Після перерви знову перевірте git status і dotnet --version у тому 
+самому корені; не розпаковуйте starter поверх власної роботи й не повторюйте installer заради 
+SDK.
+Крок 1.3. Пробний запуск installer. Перейдіть до каталогу розпакованого scaffold (там, де 
+install.py) і вкажіть номер роботи 05 та абсолютний шлях до власного проєкту:
+python3 install.py 05 "PROJECT_DIRECTORY"
+У команді замініть PROJECT_DIRECTORY абсолютним шляхом до власного проєкту, зберігаючи 
+подвійні лапки. У Windows PowerShell або Command Prompt використайте окремий блок:
+py -3 install.py 05 "PROJECT_DIRECTORY"
+Потрібен Python 3.9 або новіший (python3 --version / py -3 --version). Очікуваний вивід:
+demonstrations/cors-probe/index.html
+demonstrations/cors-probe/probe.js
+src/SecureLab.Api/Client/browser-lab.html
+src/SecureLab.Api/Client/browser-lab.js
+.scaffolds/lab-05.json
+Dry run only. Repeat with --write after checking the listed files.
+Крок 1.4. Встановлення. Повторіть ту саму команду, додавши наприкінці --write. Останній 
+рядок виводу: Scaffold installed. Review diff, restore/build, verify; completion is 
+student work.
+Що вивів installer
+Причина
+Що зробити
+install.py: error: argument 
+lab: invalid choice: '02' 
+(choose from 05) (у деяких Python 
+05 буде в лапках)
+передано неправильний 
+номер 02; цей архів містить 
+лише ЛР 05
+замініть 02 на 05
+Спершу збережіть власні зміни; 
+потрібне чисте робоче дерево
+у проєкті є незбережені або 
+невідстежувані файли
+git status --short; збережіть 
+власні зміни commit-ом, архів 
+тримайте поза проєктом
+Command '['git', … 'merge-
+base', '--is-ancestor', 
+'v0.4.0', 'HEAD']' returned 
+non-zero exit status …
+шлях не вказує на корінь 
+вашого Git-проєкту, тегу 
+v0.4.0 немає або гілку 
+створено не від нього
+перевірте шлях і git tag --
+list, поверніться до кроку 1.2
+Scaffold already installed; do 
+not replay over student 
+remediation
+квитанція вже існує; це 
+повторний запуск
+не повторюйте installer поверх 
+власних виправлень; перевірте 
+release у .scaffolds/lab-05.json
+…: файл уже існує або змінений; 
+автоматичного overwrite немає
+файл уже існує чи scaffold 
+встановлено раніше
+перевірте .scaffolds/lab-05.json і 
+git status; не перезаписуйте 
+наявні файли
+Крок 1.5. Зафіксуйте уразливий стан. Поверніться до кореня власного проєкту:
+
+Лабораторна робота 05 · SecureLab
+Сторінка 19
+git status --short
+git add .scaffolds/lab-05.json demonstrations/cors-probe
+git add src/SecureLab.Api/Client/browser-lab.html
+git add src/SecureLab.Api/Client/browser-lab.js
+git diff --staged --stat
+git commit -m "lab5: install scaffold lab-05-start-v1 (vulnerable state)"
+git rev-parse --short HEAD
+Перед commit git status --short має показати лише .scaffolds/lab-05.json (або 
+.scaffolds/, якщо цього каталогу ще не було), demonstrations/ і два нові файли в 
+src/SecureLab.Api/Client/. Hash, який вивела остання команда, — це ваш vulnerable commit. 
+Запишіть його разом зі значеннями release і base_commit із файла .scaffolds/lab-05.json у 
+docs/browser-security-evidence.md: вони потрібні в Етапі 2 (крок 1) і в артефакті DEL-02. 
+Створіть цей файл зараз копіюванням каркаса доказів (resources/templates/browser-security-evidence.md) 
+і заповніть розділ «Стенд і Git-стан»; далі доповнюйте його, не перезаписуйте.
+Робоче середовище — IDE, збирання та запуск
+Основні середовища C# — Visual Studio 2026 (18.x, Windows 11 для студентського ПК, workload 
+ASP.NET and web development) або Rider з підтримкою .NET 10 (2025.3+). Резерв за вашим 
+вибором — VS Code з Microsoft C# Dev Kit. net10.0 потребує Visual Studio щонайменше 18.0; 
+VS 2022 не підходить. Після встановлення IDE повторіть dotnet --version у корені з 
+global.json: очікується найвища встановлена стабільна SDK сімейства 10.0 — за політикою з 
+кроку 1.2. Системні вимоги Microsoft до VS 2026 вказують, що VS 2026 встановлюється лише 
+на Windows 11 або підтримувані Windows Server. Якщо у вас Windows 10, використовуйте 
+описаний Rider, оновлювати ОС для цієї роботи не потрібно. Базову установку пояснено в ЛР 
+1; для цієї роботи виконайте такі дії.
+Коли CLI працює, а IDE не бачить SDK. Оновіть Visual Studio через Visual Studio Installer до 
+стабільної версії, сумісної з обраною SDK, з workload ASP.NET and web development. 
+Підтримка net10.0 від 18.0 — мінімум для target; новіша смуга SDK може потребувати новішої 
+IDE/MSBuild, тому звірте таблицю Microsoft SDK і Visual Studio. Для Rider також установіть 
+актуальну стабільну версію з підтримкою .NET 10. У Settings (на macOS — Rider → Settings) → 
+Build, Execution, Deployment → Toolset and Build перевірте .NET CLI executable path. Це 
+шлях до dotnet/dotnet.exe, а не до каталогу sdk/10.0.…; укажіть виконуваний файл тієї 
+інсталяції, яка показує SDK 10 у --list-sdks. Знайти його можна командою where.exe dotnet у 
+Windows або command -v dotnet у macOS/Linux. Довідка JetBrains про Toolset and Build описує 
+автоматичне визначення й ручний шлях.
+Після встановлення SDK, зміни PATH або шляху Rider повністю закрийте й перезапустіть IDE 
+та її термінал, відкрийте те саме SecureLab.sln і повторіть dotnet --version та build. Якщо 
+термінал успішний, а Build IDE ні, збережіть її діагностику SDK/MSBuild: це різні механізми 
+пошуку. До з’ясування використовуйте термінальний build/run із цієї методички. Для резервного 
+VS Code оновіть C# Dev Kit і його залежності та також перезапустіть редактор.
+• Visual Studio: File → Open → Project/Solution → SecureLab.sln. У Solution Explorer відкрийте 
+SecureLab.Api, потім Program.cs, Data/DbSeeder.cs і Client/browser-lab.js. Build → Build 
+Solution збирає C#; View → Error List показує CS…, подвійний клік переходить до рядка. Для 
+повного журналу відкрийте View → Output і виберіть Build. Команди нижче виконуйте у View 
+→ Terminal із кореня solution.
+• Rider: Open → SecureLab.sln; у вікні Explorer з видом Solution — ті самі файли. Build → Build 
+Solution; помилки та журнал — у вікні Build, перехід за рядком повідомлення. Команди — у 
+Terminal. Назви дій надійніші за гарячі клавіші, які залежать від keymap.
+
+Лабораторна робота 05 · SecureLab
+Сторінка 20
+• VS Code (резерв): File → Open Folder → корінь із global.json. Файли — в Explorer, Terminal 
+→ New Terminal; виконайте dotnet build. Помилки бачите у терміналі та Problems. Якщо C# 
+Dev Kit не завантажує solution, спершу перевірте SDK командою з цього самого каталогу.
+Як читати знімки. Рисунки показують вікна macOS з англійським інтерфейсом і фрагменти 
+їхніх панелей. Порт на рисунках — 5095 — відрізняється від вашого; у себе порт не змінюйте: 
+API — http://localhost:5080, probes — 4173 і 4174. На рисунках є додаткові кнопки 
+«Перевірити marker», «Simple GET /health» і «CSP image probe»; у вашому scaffold їх немає. Ту 
+саму перевірку виконуйте поясненою командою з методички: Console поверне 'executed' або 
+null, а не рядок marker: …. Замість health?probe=… ваш запит називатиметься health. 
+Конкретні відмінності станів зазначено в підписах.
+
+Лабораторна робота 05 · SecureLab
+Сторінка 21
+Приклад спостереження — рисунок 1.
+Рисунок 1 — Rider: Explorer з видом Solution, відкрита вкладка DbSeeder.cs і діагностика Build CS1003 — пропущено 
+кому перед наступним initializer. У Windows головне меню Rider міститься у вікні програми; у Visual Studio 
+відповідники — Solution Explorer та Error List.
+Відтворюваний запуск API. Задавайте SeedUsers__Password і, якщо у вас інша локальна БД, 
+ConnectionStrings__SecureLab у тому самому вбудованому терміналі, де виконуєте крок 1.6. 
+Уже відкрита IDE не успадковує автоматично змінну з іншого термінала. Пароль і рядок 
+підключення не записуйте у tracked Properties/launchSettings.json чи звіт. Профіль http 
+містить лише несекретні адресу http://localhost:5080 і середовище Development.
+Для запуску кнопкою в Rider створіть власну локальну .NET Project конфігурацію через Run → 
+Edit Configurations: проєкт SecureLab.Api, без аргументу --reset-database. У типі .NET Project 
+немає окремого поля launch profile: тому в Environment variables задайте 
+ASPNETCORE_URLS=http://localhost:5080, ASPNETCORE_ENVIRONMENT=Development, а також 
+
+Лабораторна робота 05 · SecureLab
+Сторінка 22
+SeedUsers__Password і, за потреби, ConnectionStrings__SecureLab; Store as project file 
+залиште вимкненим, не редагуйте імпортований спільний launch profile. Перевірте git status 
+--short і diff: секретів у tracked файлах бути не повинно. У Visual Studio практичний безпечний 
+маршрут тут — запуск командою з термінала; якщо потрібна точка зупину, Debug → Attach to 
+Process → у полі фільтра введіть SecureLab.Api і виберіть власний процес, запущений 
+командою dotnet run (у Windows зазвичай SecureLab.Api.exe; не devenv.exe). Якщо збігів 
+немає, очистьте фільтр і перевірте процес dotnet.exe: у колонці Command Line має бути шлях 
+до вашого SecureLab.Api.dll. За кількох збігів звірте командний рядок і каталог власного 
+проєкту; не приєднуйтеся навмання. Те саме вікно Attach to Process відкривається клавішами 
+Ctrl+Alt+P. Connection type залиште Local; після перевірки власного процесу натисніть Attach. 
+Пароль через властивості профілю налагодження не вводьте: вони можуть записати його в 
+launchSettings.json.
+Приклад спостереження — рисунок 2.
+Рисунок 2 — Власна локальна конфігурація .NET Project у Rider (Run → Edit Configurations) та її Environment 
+Variables: Store as project file вимкнено, середовище й адресу задано змінними. На місці пароля й рядка підключення 
+— <local value> і <local database …>; у вас там будуть ваші локальні значення, а ASPNETCORE_URLS = 
+http://localhost:5080. Шлях Run → Edit Configurations у Windows той самий.
+GUI-тести мають власне оточення. Для Visual Studio можна повторно використати зовнішній 
+локальний .runsettings з ЛР 3: Test → Configure Run Settings → Select Solution Wide 
+runsettings File, виберіть файл поза Git-проєктом, у якому RunConfiguration → 
+EnvironmentVariables містить ваші ConnectionStrings__SecureLab і SeedUsers__Password. Потім 
+Test → Test Explorer → Run All. Для Rider: Settings → Build, Execution, Deployment → Unit 
+Testing → Test Runner → Environment variables, збереження Solution personal; задайте ці самі 
+два ключі, потім Unit Tests → Run All. Оточення API Run не є оточенням тестового host. Якщо 
+меню вашої версії відрізняється, виконайте перевірену команду dotnet test з кроку 1.6 у 
+терміналі з цими змінними; зовнішній файл можна передати через --settings 
+"ABSOLUTE_RUNSETTINGS_PATH". Немає вимоги створювати новий файл здачі або користуватися 
+GUI.
+Очікуйте нуль помилок збирання, Now listening on: http://localhost:5080, середовище 
+Development та /health зі статусом 200. Після зміни .cs зупиніть власний запуск і запустіть 
+його знову; після зміни .js достатньо оновити сторінку з Disable cache. Якщо порт зайнятий, 
+зупиніть свій попередній запуск: Ctrl+C в терміналі, Stop у Rider, Stop Debugging для 
+
+Лабораторна робота 05 · SecureLab
+Сторінка 23
+налагоджуваного запуску VS. Не завершуйте всі процеси dotnet і не запускайте одночасно API 
+з термінала та кнопкою.
+Перерва й повернення. Перед тривогою збережіть файли, запишіть останні commit/Guid/етап і 
+зупиніть свої API та probes через Ctrl+C. Після повернення:
+1. Перевірте git status і поточну гілку (lab/5-browser-xss).
+2. Якщо використовуєте Docker Desktop, відкрийте його й дочекайтеся запуску engine. У корені 
+проєкту виконайте docker info: секція Server має бути без помилки з’єднання. Cannot 
+connect to the Docker daemon означає вимкнений engine або інший Docker context; reset БД 
+цього не виправляє.
+3. Підніміть БД: docker compose --env-file infra/.env.example -f infra/compose.yaml up 
+-d --wait.
+4. У новому терміналі знову задайте змінні (SeedUsers__Password і, за потреби, 
+ConnectionStrings__SecureLab), запустіть один API, перевірте /health.
+5. Увійдіть у тому самому вікні браузера; за потреби знову запустіть два probes.
+6. Повторіть перерваний крок.
+Не повторюйте installer і не скидайте БД автоматично: reset видалить створений вами тестовий 
+запис. Якщо reset усе ж потрібний, створіть marker-record знову й запишіть новий Guid у докази.
+Версії й маршрути уточнюють Microsoft: SDK і Visual Studio, Rider 2025.3, локальні конфігурації 
+Rider та runsettings для тестів.
+Крок 1.6. Запустіть стенд. У новому терміналі спершу задайте SeedUsers__Password так само, 
+як у ЛР 3 (Bash/zsh: export SeedUsers__Password='…'; PowerShell: $env:SeedUsers__Password = 
+'…'). Без цієї змінної --reset-database завершиться винятком «SeedUsers:Password має бути 
+передано поза Git…».
+docker compose --env-file infra/.env.example -f infra/compose.yaml up -d --wait
+dotnet run --project src/SecureLab.Api -- --reset-database
+dotnet test tests/SecureLab.Api.Tests/SecureLab.Api.Tests.csproj --configuration Release
+dotnet run --project src/SecureLab.Api
+Клієнт і API працюють на http://localhost:5080/. Команда з --reset-database скидає 
+локальні навчальні дані й завершує процес. Тести мають проходити так само, як на v0.4.0: 
+scaffold не змінює жодного з перевірюваних файлів. Остання команда запускає один процес, 
+який обслуговує і API, і сторінки клієнта; залиште його працювати, а наступні команди 
+виконуйте в іншому вікні термінала. Не змінюйте тест заради зеленого статусу й не оголошуйте 
+PASS без виконання команди.
+Крок 1.7. Перший прохід у браузері.
+1. Відкрийте http://localhost:5080/browser-lab.html і натисніть посилання «Навчальний 
+вхід» (це сторінка auth-lab.html з ЛР 3). Уведіть alice і локальний пароль; під формою має 
+з’явитися Login: 204.
+2. Поверніться на /browser-lab.html. У поле «Guid інциденту» вставте id seed-інциденту Alice 
+20000000-0000-0000-0000-000000000001 і натисніть «Прочитати».
+3. Очікуваний результат: рядок стану GET: 200, під ним — назва, опис і коментар інциденту. 
+GET: 401 означає, що в цьому вікні не виконано вхід; GET: 403 або 404 — відмова за 
+матрицею доступу чи відсутній ресурс з коректним Guid. Якщо після GET:200 екран порожній і 
+Console показує помилку JSON, перевірте Guid: рядок, що не є Guid, не відповідає маршруту 
+{id:guid} і може потрапити до SPA fallback index.html зі статусом 200 та Content-
+Type:text/html. У Network має бути JSON, а не HTML; скопіюйте весь Guid без пробілів.
+
+Лабораторна робота 05 · SecureLab
+Сторінка 24
+Приклад спостереження — рисунок 3.
+Рисунок 3 — Перший прохід /browser-lab.html після входу Alice: «Прочитати» дала GET: 200, нижче — назва, опис і 
+коментар seed-інциденту; опис підставлено й у поле «Опис нового інциденту». Порт на рисунку — 5095; у себе 
+залиште 5080. Кнопки «Перевірити marker» у вашій сторінці немає.
+2. Відкрийте DevTools до початку експерименту
+Відкриття й налаштування (Chrome/Edge). На локальній сторінці відкрийте меню браузера → 
+More tools / Інші інструменти → Developer tools. Альтернатива: F12 або Ctrl+Shift+I у 
+Windows/Linux; Cmd+Option+I у macOS. Натисніть вкладку Console (якщо схована — меню »). 
+Ctrl+Shift+J / Cmd+Option+J одразу відкриває Console. У Firefox скористайтеся меню Web 
+Developer Tools і вкладками Console/Network/Inspector; назви та клавіші можуть відрізнятися.
+Вставлення коду. Спершу прочитайте блок і переконайтеся, що це пояснений приклад із цієї 
+методички або з resources/copyable/. Якщо Chrome чи Edge показує попередження self-XSS і 
+блокує вставлення (рисунок 4), це захист від шахрайських інструкцій, а не збій стенда. Лише 
+для коду з цієї методички, лише на власній сторінці http://localhost:… і лише якщо 
+попередження саме просить allow pasting, надрукуйте цю фразу вручну, без лапок, натисніть 
+Enter і вставте блок повторно; браузер запам’ятає це для поточного профілю. Ніколи не робіть 
+цього для коду, який вам надіслали в чаті, листі чи показали на чужому сайті. Якщо 
+попередження немає, фразу не вводьте. Не вимикайте захист глобальними прапорцями 
+браузера. Console виконує блок клавішею Enter, Shift+Enter додає новий рядок. Chrome: self-
+XSS.
+Приклад спостереження — рисунок 4.
+Рисунок 4 — Попередження self-XSS у Console Chrome: вставлення заблоковано. Лише якщо попередження саме 
+просить allow pasting, надрукуйте цю фразу вручну, без лапок, і натисніть Enter. Робіть це лише для пояснених 
+блоків цієї методички на власній локальній сторінці. Це не помилка API.
+Network — покрокове спостереження. Відкрийте Network, перевірте червоне коло запису, 
+оберіть All, очистьте поле Filter. У верхньому рядку ввімкніть Keep log (у попередніх версіях — 
+
+Лабораторна робота 05 · SecureLab
+Сторінка 25
+Preserve log) для переходів між сторінками й Disable cache; останній діє лише доки DevTools 
+відкрито. Очистьте список перед окремим дослідом (кнопка очищення), потім виконайте одну 
+дію. Якщо Method не видно, правий клік на заголовках списку → Method. Клацніть потрібний 
+URL → Headers: General показує URL/method/status, Request Headers — Origin і requested 
+headers, Response Headers — дозволи сервера. Payload показує відправлений JSON, 
+Response/Preview — відповідь. Для CORS після probe виберіть API /health, а для preflight 
+окремо його OPTIONS; не плутайте з документом probe чи favicon. Наявність рядка GET з 
+помилкою ще не доводить, що actual GET було надіслано. Chrome: Network.
+Приклад спостереження — рисунок 5.
+Рисунок 5 — Network перед дослідом: запис увімкнено, Keep log і Disable cache позначено, All вибрано; GET seed-
+інциденту отримав 200 та JSON. Name і Method/Status у вашій панелі — колонки однієї таблиці. Порт на рисунку — 
+5095; у себе залиште 5080. Request headers згорнуто; значення cookie до доказів не додавайте.
+DOM і сеанс. Правий клік на описі → Inspect відкриває Elements; Ctrl+F/Cmd+F у цій панелі 
+шукає #description, #comments чи #lab05-marker-target. Розгорніть вузол після render: text 
+node і <img> — різні результати. Application → Storage → Cookies → http://localhost:5080 показує 
+метадані cookie сеансу. Зафіксуйте лише назву, Domain, Path, HttpOnly, SameSite та ознаку 
+Secure; Value не копіюйте й не відкривайте у кадрі. Якщо ваш інтерфейс не дозволяє прибрати 
+значення до знімка, подайте текстову таблицю цих атрибутів без screenshot. Це не замінює 
+окрему перевірку запиту та відповіді. У Firefox аналог — Inspector і Storage. Після перерви 
+
+Лабораторна робота 05 · SecureLab
+Сторінка 26
+заново відкрийте потрібну сторінку/панелі й перевірте фільтри: порожній список після Reload не 
+доводить відсутності запиту, якщо запис вимкнено або фільтр його приховав.
+Відкрийте DevTools у вкладці browser client. На цьому етапі потрібні:
+Панель
+Що зафіксувати
+Network
+request URL, method, request payload, response JSON, status, response 
+headers
+Elements
+фактичне DOM subtree саме після дії, яку описуєте, а не лише початковий 
+HTML-файл; після повторного render дерево може бути перебудоване
+Console
+лише власні безпечні діагностичні повідомлення й browser error без секретів
+Application/Storage
+тип механізму local session, але не cookie/token value
+У Network увімкніть Keep log (у попередніх версіях — Preserve log) за потреби. Зробіть один 
+звичайний flow: відкрийте details для нейтрального seed-record або створіть запис із 
+нейтральним описом через форму на /browser-lab.html. Установіть відповідність між UI action 
+та HTTP request. Не починайте з payload: спершу потрібно зрозуміти normal flow.
+3. Побудуйте карту даних
+Спочатку прочитайте повністю заповнений приклад Title (resources/examples/title-source-to-sink.md): він 
+зіставляє seed, DTO, JSON і безпечний sink штатного клієнта. Це інше поле й інша сторінка, а 
+не готовий опис вашої вразливості. Потім скопіюйте каркас карти (resources/templates/source-to-
+sink.md) у docs/source-to-sink.md і заповніть таблицю. Основне текстове поле для всіх — 
+Incident.Description, як визначено у спільних параметрах роботи; IncidentComment.Text 
+додається до перевірки на доброму рівні. Укажіть конкретні імена request/response fields із 
+фактичного JSON, а також файлів, DTO та функцій проєкту.
+Крок
+Де виникає або 
+змінюється значення
+Дані / доказ
+Статус довіри
+Source
+поле форми, 
+location.hash або інше 
+джерело
+назва input/параметра
+контрольоване користувачем
+Request
+fetch і request DTO
+JSON field у Network
+контрольоване користувачем
+Server 
+transform
+handler/service/validation
+ім’я DTO або mapping
+не стає trusted лише через 
+validation
+Storage
+entity і PostgreSQL
+назва колонки / local 
+evidence
+збережене значення 
+користувача
+Response
+response DTO
+JSON field у Network
+недовірене для відображення 
+браузером
+Client 
+transform
+JavaScript function
+файл і function
+залежить від реалізації
+Sink
+конкретна DOM operation
+file, function, element
+безпечний або небезпечний з 
+поясненням
+
+Лабораторна робота 05 · SecureLab
+Сторінка 27
+Карта має показувати одну коротку доказову лінію. Фраза «дані йдуть у frontend» недостатня: 
+назвіть request field, response field та exact sink.
+Заповнений зразок іншого поля
+Для Title seed-інциденту Alice на штатній сторінці / карта така; цей sink уже безпечний. 
+Власний оцінюваний Description на browser-lab досліджуйте самостійно.
+Крок
+Точне місце
+Значення / доказ
+Довіра й перетворення
+Source
+Data/DbSeeder.cs, SeedAsync, 
+aliceIncident.Title
+Підозрілий лист із 
+вкладенням
+у прикладі synthetic seed; у 
+продукті назву вводить 
+користувач
+Request
+GET /api/incidents/20000000-
+0000-0000-0000-000000000001
+body відсутнє; Guid лише 
+обирає запис
+це читання seed, нового title у 
+request немає
+Storage
+Incident.Title у PostgreSQL
+те саме значення
+збереження не робить майбутні 
+назви довіреним HTML
+Server
+Application/Incidents/
+IncidentQueries.cs, 
+GetDetailsAsync
+Incident.Title → 
+IncidentDetailsResponse.
+Title
+projection без HTML-очищення; 
+авторизація перевіряє право, 
+не DOM
+JSON
+Presentation/Contracts/
+IncidentResponses.cs, 
+IncidentDetailsResponse; 
+response JSON title
+те саме Unicode-
+значення
+JSON escape не є захистом 
+HTML sink
+Client
+Client/app.js, loadIncidentDetails 
+→ renderIncidentDetails
+incident.title → 
+createTextElement("h3", 
+incident.title)
+дані не конкатенуються у 
+markup
+Sink
+app.js, createTextElement
+element.textContent = text
+контекст текстового вузла: h3 
+створює код, назву додає 
+textContent
+4. Знайдіть і класифікуйте DOM sinks
+Межа обов’язкової інвентаризації — власний код browser client у src/SecureLab.Api/Client/ та 
+інші client files, які ви змінювали. Генерований вивід і сторонні бібліотеки не включайте до 
+переліку власних sinks, але відзначте їх як залишковий ризик, якщо вони беруть участь у 
+досліджуваному flow.
+Пошук за innerHTML, outerHTML, insertAdjacentHTML, inline event attributes, eval, new Function і 
+dynamic URL — це старт інвентаризації, а не готовий висновок. Для кожного значення на екрані 
+details — наприклад, заголовка, статусу, імені автора й тексту — установіть одну категорію 
+походження:
+• trusted constant — незмінний literal, визначений у власному source code;
+• server-generated — значення сформував сервер, а не користувач;
+• контрольоване користувачем — значення безпосередньо контролює користувач або 
+зовнішнє джерело;
+• збережене значення користувача — раніше контрольоване користувачем значення, 
+прочитане зі сховища.
+
+Лабораторна робота 05 · SecureLab
+Сторінка 28
+Запис до БД або повернення через API не переводить значення з категорії збережене 
+значення користувача до server-generated. Для кожного знайденого місця внесіть до таблиці 
+категорію даних і рішення:
+Місце
+Дані, що 
+потрапляють у sink
+Категорія даних
+Контекст
+Рішення
+static template
+лише code-owned 
+constant
+trusted constant
+HTML
+допустимо лише за 
+відсутності user data
+text field render
+user/API/DB value
+контрольоване 
+користувачем або 
+збережене значення 
+користувача
+HTML 
+parser
+потрібно safe DOM 
+rendering
+status render
+значення з 
+контрольованого 
+server workflow
+server-generated
+text/attribute
+перевірити фактичний 
+контекст і спосіб 
+вставлення
+link attribute
+URL-like value
+визначити за 
+походженням
+navigation
+перевірити protocol і 
+allowlist
+event handler 
+string
+будь-який runtime 
+string
+визначити за 
+походженням
+code 
+execution
+не створювати зі 
+строкових даних
+Не робіть небезпечним усе автоматично. Наприклад, element.innerHTML = 
+"<strong>Готово</strong>" з literal, що контролюється source code, має інший ризик, ніж 
+template, у який конкатеновано record.description. Проте для нового студентського коду 
+віддавайте перевагу DOM API: це зменшує шанс, що пізніше в template додадуть недовірене 
+значення.
+5. Перевірте звичайний текст до PoC
+Створіть тестові значення в Incident.Description через форму «Створити й прочитати» на 
+/browser-lab.html (вона надсилає POST /api/incidents) або через власний named .http 
+request. Нову форму розробляти не потрібно.
+• апостроф і подвійні лапки;
+• символи < і >;
+• Unicode, наприклад Київ — Ω;
+• текст, близький до дозволеної максимальної довжини.
+Після створення відкрийте відповідний запис у browser client. У Network перевірте, що response 
+JSON містить очікуване значення, а в Elements — як саме browser client його відобразив. Не 
+робіть висновок за «гарним виглядом» UI: важливі фактичний DOM і спосіб його побудови.
+Що ви побачите на сторінці scaffold до виправлення і що має бути після нього:
+Значення в описі
+До виправлення
+Після виправлення
+Користувач O'Brien написав 
+"терміново"
+той самий текст
+той самий текст
+5 < 7 і 9 > 3
+той самий текст: < перед пробілом не 
+починає тег
+той самий текст
+Київ — Ω
+той самий текст
+той самий текст
+
+Лабораторна робота 05 · SecureLab
+Сторінка 29
+Значення в описі
+До виправлення
+Після виправлення
+<b>жирний</b> текст
+видно «жирний текст» без дужок, 
+перше слово напівжирне; в Elements є 
+елемент <b>
+видно рядок <b>жирний</b> 
+текст; в Elements — один 
+текстовий вузол
+seed-інцидент Alice 20000000-
+0000-0000-0000-000000000003 
+(в описі є <script>)
+видно лише слово «Текст»: решта 
+речення опинилася всередині 
+невиконаного елемента <script>
+видно все речення
+Висновок: звичайні слова, лапки й Unicode не відрізняють безпечне відображення від 
+небезпечного; різницю показують лише рядки, схожі на теги. Для перевірки довжини: у starter 
+колонка description обмежена 4000 символами, але фактичну межу беріть із власних 
+validation rules ЛР 2; довгий рядок зручно отримати в Console командою 
+copy("А".repeat(3900)), яка кладе його в буфер обміну.
+6. Сформулюйте гіпотезу та контрольну точку
+У вже створеному на кроці 1.5 файлі docs/browser-security-evidence.md запишіть гіпотезу 
+однією структурованою фразою:
+Значення з [source] зберігається в [storage], повертається через [response field] і 
+передається у [sink] як [HTML/text/URL/code context]; тому за умов [умова] браузер може 
+інтерпретувати дані не як звичайний текст.
+Контрольна точка. Перевірте себе: у вас є одна заповнена карта, один Network 
+request/response і точний DOM sink. Якщо заплановано консультацію, покажіть саме це. Не 
+переходьте до payload, доки не можете пояснити карту.
+Контрольна точка CP-01 (Для всіх): типові хибні рішення
+• Назвати «source» саму БД, не встановивши, як туди потрапив текст.
+• Вважати API response trusted, бо сервер повернув 200.
+• Дивитися тільки View Source замість поточного Elements tree.
+• Плутати HTML attribute, text node, URL і JavaScript contexts.
+• Вважати приховану кнопку або client validation межами довіри.
+Етап 2. Контрольований XSS PoC і безпечне формування DOM
+Для всіх: кроки 1–6 і CP-02 для Description. У fixed state жодне значення з API не має 
+потрапляти в innerHTML: замініть safe DOM API обидва знайдені в browser-lab.js місця — опис 
+і коментарі. На «Задовільно» для коментарів достатньо цієї самої заміни, без окремого seed-
+досліду. Seed-дослід коментаря, його рядок у карті та helper — «Добре / Відмінно»; контекст 
+URL/атрибута — «Відмінно».
+1. Зафіксуйте vulnerable state
+Після normal flow з Етапу 1 зафіксуйте commit установленого scaffold і успадкований v0.4.0 у 
+доказовій таблиці. Початковий браузерний flow уже містить навмисно небезпечне 
+відображення збереженого тексту. Самостійно знайдіть sink і простежте його походження; не 
+вставляйте нову уразливість у власний API чи frontend. Authentication та authorization 
+залишаються чинними. Не додавайте cookie, .env, dump або credentials до доказів.
+
+Лабораторна робота 05 · SecureLab
+Сторінка 30
+2. Відтворіть лише канонічний безпечний marker (resources/lab05-marker.txt)
+Використайте один harmless marker, який у разі виконання встановлює data-lab05-
+marker="executed" лише на #lab05-marker-target. Не вигадуйте більш агресивний варіант, не 
+копіюйте payload з публічних cheat sheet і не виконуйте зовнішніх запитів. Заборонено читати 
+cookie, token, credential, browser storage чи інші секрети, виконувати exfiltration або будь-яку 
+іншу мережеву чи руйнівну дію.
+Точний дозволений локальний marker (не змінюйте його на іншу дію):
+<img src=x onerror="document.querySelector('#lab05-marker-target').setAttribute('data-
+lab05-marker','executed')">
+Єдине джерело копіювання marker — однорядковий resources/lab05-marker.txt, 
+доступний у виданому каталозі ресурсів і розпакованому ZIP. Відкрийте файл як текст, 
+скопіюйте єдиний рядок без кінцевого переносу в поле опису. Наведений вище блок у PDF 
+лише показує вигляд: з нього не копіюйте. Значення TXT і README однакові, але під час 
+копіювання з PDF може додатися перенос.
+Елемент #lab05-marker-target на сторінці прихований (hidden), тому результат marker видно 
+лише в DevTools. Команда перевірки для Console:
+document.querySelector("#lab05-marker-target").getAttribute("data-lab05-marker")
+До досліду вона повертає null, після виконання marker — 'executed'.
+Вікно A — Alice (автор запису).
+1. Відкрийте http://localhost:5080/browser-lab.html, увійдіть як Alice (крок 1.7 Етапу 1). 
+Відкрийте DevTools; у Network увімкніть Keep log (у попередніх версіях — Preserve log) і 
+Disable cache.
+2. Виконайте команду перевірки: має бути null.
+3. Очистьте поле «Опис нового інциденту» (після «Прочитати» сторінка підставляє туди опис 
+поточного інциденту), уведіть будь-яку нейтральну назву, вставте в порожнє поле опису 
+marker і натисніть «Створити й прочитати».
+4. Що має бути видно:
+• рядок стану GET: 200 (перед ним на мить з’являється POST: 201);
+• на сторінці замість тексту опису — значок «зламаного» зображення;
+• у Network: POST /api/incidents зі статусом 201 (у request payload поле description 
+дорівнює marker), GET /api/incidents/{id} зі статусом 200 (у response JSON те саме 
+значення; лапки всередині записано як \" — це запис JSON, а не зміна даних) і запит x до 
+localhost:5080 — спроба завантажити зображення;
+• в Elements: усередині <div id="description"> є елемент <img src="x" onerror="…">, а в 
+кінці <body> — <span id="lab05-marker-target" hidden aria-hidden="true" data-lab05-
+marker="executed">;
+• команда перевірки повертає 'executed'.
+5. Скопіюйте значення з поля «Guid інциденту»: воно потрібне для вікна B.
+
+Лабораторна робота 05 · SecureLab
+Сторінка 31
+Приклад спостереження — рисунок 6.
+Рисунок 6 — До виправлення, без CSP: у #description створено дочірній елемент <img>, контрольний span має data-
+lab05-marker="executed". На рисунку є додаткова кнопка й рядок marker: executed; у вашому scaffold кнопки немає, 
+команда перевірки поверне 'executed'.
+Вікно B — Morgan (привілейований глядач).
+6. Відкрийте приватне (incognito) вікно або інший браузер: там окреме сховище cookie, тому це 
+окремий сеанс. Перейдіть на http://localhost:5080/auth-lab.html, увійдіть як morgan, 
+потім відкрийте /browser-lab.html і DevTools.
+7. Виконайте команду перевірки (null), вставте скопійований Guid і натисніть «Прочитати». 
+Очікування: GET: 200, команда перевірки повертає 'executed'. Саме це спостереження 
+доводить stored XSS: код, який зберегла Alice, виконався в сеансі Morgan з роллю Analyst.
+8. Контроль: у ще одному окремому сеансі Bob той самий Guid дає відмову (GET: 403 або 404 
+відповідно до вашої матриці ЛР 4), а команда перевірки повертає null. Bob не є доказом 
+stored XSS.
+Атрибут лишається на елементі до перезавантаження сторінки. Перед кожним повторенням 
+досліду оновіть сторінку й переконайтеся, що команда перевірки знову повертає null.
+9. Зафіксуйте request, response JSON (або наданий DB evidence), стан Elements до й після 
+render і результат команди перевірки в обох вікнах.
+10. Класифікуйте flow: stored XSS, якщо значення збереглося й виконується під час пізнішого 
+перегляду; DOM-based XSS, якщо unsafe transformation client-side source, наприклад hash 
+URL, одразу досягає sink. Reflected XSS у цій роботі потрібно пояснити, але окремий 
+reflected flow не входить до спільного scope.
+Що ви бачите
+Причина
+Що зробити
+POST: 401
+у цьому вікні не виконано 
+вхід
+увійдіть через «Навчальний вхід»
+POST: 400
+значення відхилила server 
+validation з ЛР 2
+прочитайте body відповіді в Network і 
+звірте з правилами поля; не 
+послаблюйте правило навмання
+GET: 200, перевірка повертає 
+null, у Console — Uncaught 
+SyntaxError або 
+InvalidCharacterError
+marker скопійовано з 
+розривом рядка чи 
+пробілом
+скопіюйте marker з однорядкового 
+resources/lab05-marker.txt
+
+Лабораторна робота 05 · SecureLab
+Сторінка 32
+Що ви бачите
+Причина
+Що зробити
+GET: 200, перевірка повертає 
+null, у Console — 
+повідомлення зі словами 
+Content Security Policy
+уже ввімкнено enforcement 
+CSP (Етап 4), inline handler 
+заблоковано
+стан «до» фіксуйте на vulnerable commit 
+без enforcement CSP
+після виправлення marker усе 
+ще виконується
+браузер узяв browser-
+lab.js із кешу
+тримайте Disable cache ввімкненим 
+(DevTools відкрито) або виконайте 
+примусове перезавантаження: 
+Ctrl+Shift+R, у macOS — Cmd+Shift+R. 
+Перезапускати API після зміни .js не 
+потрібно
+Як виглядає успішний retest (крок 6 цього етапу). На сторінці видно сам рядок marker, 
+символ у символ. В Elements усередині <div id="description"> — один текстовий вузол у 
+лапках, елемента <img> немає; запиту x у Network немає; команда перевірки повертає null. 
+Якщо відкрити вузол через «Edit as HTML», DevTools покаже &lt;img …&gt;: це лише спосіб 
+запису тексту в HTML, збережене значення не змінилося — звірте його з response JSON.
+Приклад спостереження — рисунок 7.
+Рисунок 7 — Після виправлення обох способів виведення, без CSP: у #description — текстовий вузол у лапках, а не 
+елемент <img>; у контрольного span немає data-lab05-marker. Рядок marker: null і елемент <button id="check-
+marker"> відсутні у вашому scaffold; ваша команда перевірки поверне null.
+Не зберігайте в звіті secrets або browser storage values. Достатньо screenshot/trace із 
+замаскованим account name і доказу, що marker змінив тільки передбачений local test element.
+Stored/reflected описують походження й тривалість збереження даних, DOM-based — місце 
+небезпечного перетворення. Ці ознаки не взаємовиключні: потік цієї роботи має збережений у 
+БД текст і виконує його через клієнтський innerHTML. Назвіть обидві ознаки та покажіть точний 
+sink.
+Якщо власна валідація ЛР 2 відхиляє всі </>, звірте її з контрактом: Description — звичайний 
+текст, такі символи там не заборонені. Виправте саме надмірне правило й перевірте 
+позитивний рядок 5 < 7 у вже потрібній регресії. Окремий commit для цієї причини 
+рекомендовано; окремий новий файл тестів не є умовою зарахування. Не вилучайте потрібні 
+required/length/date/cross-field перевірки й не змінюйте marker. Захист plain text від XSS 
+виконується у sink.
+
+Лабораторна робота 05 · SecureLab
+Сторінка 33
+3. Назвіть першопричину, а не payload
+Запишіть finding за моделлю:
+Частина
+Що зазначити
+Актив
+browser session і дані, доступні від імені користувача
+Передумови
+локальний тестовий account, контроль над text field або URL source
+Першопричина
+конкретний untrusted flow у HTML/code/URL sink
+Вплив на стенді
+marker виконав лише безпечну local DOM дію
+Виправлення
+safe rendering або, якщо HTML є продуктово потрібним, sanitizer policy
+Retest
+той самий marker більше не інтерпретується як виконуваний код
+Залишковий ризик
+інші поля/sinks, third-party code, неохоплені contexts
+Фільтр value.replace("script", "") не є виправленням. Він залежить від одного запису 
+payload і не змінює того, що browser parser отримує недовірений HTML. Так само не 
+розв’язують проблему blacklist тегів, заборона всіх кутових дужок або CSP без виправлення 
+sink.
+4. Замініть dangerous sink safe DOM API
+Якщо поле за предметним змістом є звичайним текстом, створюйте структуру елементів через 
+createElement і передавайте значення в textContent або createTextNode. Нейтральний 
+приклад нижче показує цей патерн для довільної колекції з полем item.label; він не відтворює 
+модель даних або готову функцію зі starter-проєкту:
+function renderLabels(container, items) {
+  const list = document.createElement("ul");
+  for (const item of items) {
+    const listItem = document.createElement("li");
+    listItem.textContent = item.label;
+    list.append(listItem);
+  }
+  container.replaceChildren(list);
+}
+Для самоперевірки виконайте renderLabels і цей виклик у Console локальної навчальної 
+сторінки. Приклад працює з окремим елементом, не змінюючи дані застосунку (готові файли: 
+resources/copyable/example-10.js — функція, resources/copyable/example-11.js — виклик):
+const demo = document.createElement("div");
+renderLabels(demo, [{ label: "<b>демо</b>" }]);
+console.log(demo.querySelector("li").textContent);
+console.log(demo.querySelector("b"));
+renderLabels(demo, []);
+console.log(demo.querySelectorAll("li").length);
+Очікуються рядок <b>демо</b>, потім null, потім 0. Кутові дужки залишилися текстом; елемент 
+b не створено. Повторний render з порожнім масивом прибирає старі елементи списку. 
+Перенесіть цей принцип до знайденого вами flow самостійно.
+
+Лабораторна робота 05 · SecureLab
+Сторінка 34
+DOM: від даних до спостереження
+У прикладі renderLabels вище створення li визначає структуру, а textContent додає 
+звичайний текст. Для вхідного <b>демо</b> має бути видно саме символи дужок і b; елемент b 
+не повинен виникнути. innerHTML натомість просить браузер розібрати рядок як HTML. Це різні 
+операції, навіть якщо для простого слова «демо» вигляд однаковий. Тому перевірка лише 
+звичайним словом не розрізняє правильну й хибну реалізацію.
+Після другого renderLabels з порожнім масивом список має стати порожнім. Якщо старі 
+елементи лишилися, перевірте очищення контейнера до додавання нових. Якщо все 
+дублюється, відділіть повторний виклик функції від повторної реєстрації event listener; 
+редагування API тут не виправить DOM-стан.
+Не конкатенуйте недовірене значення в HTML-рядок. Складене присвоєння до властивості 
+innerHTML не лише створює XSS sink, а й повторно розбирає та перебудовує все піддерево. 
+Через це раніше додані через addEventListener listeners та інший DOM state у цьому піддереві 
+можуть бути втрачені.
+Предметні поля зафіксовано як Incident.Description і, для доброго рівня, 
+IncidentComment.Text, але точні назви відповідних властивостей у response JSON беріть із 
+Network, а не вигадуйте за аналогією. Перевірте також повторний render: якщо функція очищає 
+container, використовуйте replaceChildren() або побудуйте DocumentFragment, а не 
+повертайтеся до конкатенації innerHTML.
+Як перевірити IncidentComment.Text (Добре / Відмінно). Сторінка /browser-lab.html показує 
+під описом усі коментарі з масиву comments відповіді GET /api/incidents/{id}; текст кожного 
+береться з поля text. Endpoint створення коментаря в успадкованому API немає, тому 
+тестовий коментар додайте так само, як internal comment у ЛР 4, — через власний 
+відтворюваний seed:
+1. У src/SecureLab.Api/Data/DbSeeder.cs, усередині SeedAsync, перед 
+dbContext.IncidentComments.AddRange(...) вставте константу нижче. Кожна частина — 
+повний короткий C# literal; конкатенація дає один рядок marker без пробілів чи переносів між 
+частинами. Готовий фрагмент seed (resources/copyable/comment-seed.cs) містить також повний 
+initializer.
+const string Lab05Marker =
+    "<img src=x onerror=\""
+    + "document.querySelector('#lab05-marker-target')"
+    + ".setAttribute('data-lab05-marker','executed')\">";
+У тому самому методі додайте ще один initializer останнім аргументом 
+IncidentComments.AddRange — після всіх наявних коментарів (двох зі starter і, якщо ви 
+додавали його на доброму рівні ЛР 4, internal-коментаря …000000000003; додавати його зараз 
+не потрібно), через кому. Наявні initializer не змінюйте й не видаляйте. Не створюйте нового 
+endpoint і не замінюйте весь DbSeeder:
+new IncidentComment
+{
+    Id = Guid.Parse("30000000-0000-0000-0000-000000000005"),
+    Incident = aliceIncident,
+    Author = morgan,
+    Text = Lab05Marker,
+    IsInternal = false,
+    CreatedAtUtc = new DateTimeOffset(
+        2026, 8, 1, 9, 35, 0, TimeSpan.Zero)
+}
+
+Лабораторна робота 05 · SecureLab
+Сторінка 35
+aliceIncident і morgan — наявні локальні змінні цього методу; не вставляйте фрагмент поза 
+ним. Після dotnet build має бути нуль помилок. Якщо помилки є, почніть із першої 
+діагностики:
+• CS1010 Newline in constant (поруч можуть з’явитися CS1002, CS1003 або CS1012) — звірте 
+лапки й переноси звичайних рядкових literal; скопіюйте константу заново з 
+resources/copyable/comment-seed.cs;
+• CS1003 Syntax error, ',' expected біля нового new IncidentComment — перевірте кому 
+після попереднього initializer в AddRange;
+• CS0103 The name 'aliceIncident' does not exist in the current context (або 'morgan') 
+— звірте написання імен і переконайтеся, що initializer стоїть усередині SeedAsync, де ці 
+локальні змінні вже оголошено.
+Де читати ці помилки й переходити до рядка — див. блок «Робоче середовище» та рисунок 1 
+в Етапі 1. Публічний коментар має IsInternal=false, власний сталий Guid і автора Morgan.
+2. Виконайте dotnet run --project src/SecureLab.Api -- --reset-database, запустіть API й 
+відкрийте цей інцидент на /browser-lab.html як Alice.
+3. До виправлення команда перевірки з кроку 2 повертає 'executed' уже для seed-інциденту, а 
+в Elements усередині <div id="comments"> є елемент <img>. Після виправлення коментар 
+видно як текст, команда перевірки повертає null.
+4. Доповніть карту source-to-sink другим рядком: для цього поля source — seed (у продукті ним 
+був би будь-який автор коментаря), response field — comments[].text, sink — операція в 
+циклі відображення коментарів.
+Якщо ваші тести ЛР 4 перевіряють точну кількість коментарів цього інциденту, оновіть лише це 
+похідне очікування після звірки seed; не послаблюйте інші assertions. Для зручності порівняння 
+рекомендовано окремий commit seed-зміни перед vulnerable-спостереженням коментаря. Це не 
+додатковий обов’язковий артефакт: DEL-02 уже зберігає потрібні стани до/після.
+Для URL-like data не використовуйте HTML string template. Перш ніж призначати href чи src, 
+визначте policy: чи це лише server-generated route, чи allowlist https: host, чи посилання взагалі 
+не потрібне. textContent не є універсальним засобом для URL attribute context.
+Добре / Відмінно — єдиний safe render helper. Використайте один контекстно безпечний 
+helper для відображення Description і текстів comments; збережіть посилання на його 
+реалізацію та виклики. Для «Задовільно» окремий helper не потрібний, але safe DOM API 
+обов’язковий.
+Зразок helper. Єдиний безпечний helper уже є у вашому проєкті: функція 
+createTextElement(tagName, text, className) у src/SecureLab.Api/Client/app.js створює 
+елемент і записує значення через textContent. Прочитайте її перед тим, як писати власний 
+helper для /browser-lab.html: принцип той самий — структуру задає код, дані потрапляють 
+лише в текстовий вузол.
+Контекст URL (Відмінно). textContent не допоможе, якщо значення має стати адресою в href 
+або src: небезпека тут у схемі на кшталт javascript:. Нейтральний приклад перевірки, яку 
+можна виконати в Console:
+function safeHttpUrl(value, base) {
+  try {
+    const url = new URL(value, base);
+    return url.protocol === "https:" || url.protocol === "http:" ? url.href : null;
+  } catch {
+    return null;
+  }
+}
+
+Лабораторна робота 05 · SecureLab
+Сторінка 36
+const base = "http://localhost:5080";
+console.log(safeHttpUrl("https://example.com/a", base));
+console.log(safeHttpUrl("/incidents/1", base));
+console.log(safeHttpUrl("javascript:alert(1)", base));
+console.log(safeHttpUrl(" JaVaScRiPt:alert(1)", base));
+console.log(safeHttpUrl("http://[bad", base));
+Вивід: https://example.com/a, http://localhost:5080/incidents/1, далі тричі null. Рядок 
+розбирає сам браузер (new URL), а не regular expression, тому регістр і пробіли на початку не 
+обходять перевірку; null означає «посилання не створювати». Чи потрібні у вашому клієнті 
+посилання з даних узагалі й які hosts дозволені — це рішення вашої policy.
+5. HTML дозволений лише за явною продуктовою потребою
+За спільними параметрами ЛР 5 formatted HTML у Incident.Description та 
+IncidentComment.Text не дозволено. Зберігайте ці значення як звичайний текст, 
+використовуйте safe DOM API й не додавайте sanitizer або rich-text editor ані до обов’язкового, 
+ані до вищих рівнів виконання.
+Sanitizer був би потрібний лише за окремої продуктової вимоги приймати обмежений HTML. У 
+такому іншому контракті слід застосовувати підтримувану бібліотеку на кшталт DOMPurify з 
+мінімальним allowlist tags, attributes і URL protocols, а не власний regular expression. Це пояснює 
+критерій вибору контрзаходу, але не змінює спільне завдання цієї роботи: HTML-like string має 
+відображатися як текст.
+6. Виконайте retest і позитивну регресію
+Після fix повторіть той самий marker з тим самим record або після reset/повторного створення 
+за точно описаною процедурою. До і після fix окремо отримайте значення через наданий .http-
+запит, response JSON або DB evidence. Збережене значення має бути тим самим Unicode-
+рядком: якщо application відкинув чи замінив </> на вході, ви змінили дані, а не виправили sink.
+Далі перевірте normal text із Етапу 1. Результат має бути таким:
+Сценарій
+Очікуваний результат
+Мінімальний доказ
+Незмінність збереженого 
+marker
+значення в БД або response JSON після 
+fix збігається зі значенням до fix
+.http response або DB 
+evidence до/після
+Відображення original 
+marker
+DOM містить текстовий вузол, а HTML-
+like string показано як дані
+знімок відповідного subtree у 
+Elements
+Дія original marker
+передбачена local marker action не 
+відбувається
+перевірка test element до/після 
+render
+Лапки, <, >
+залишаються видимими даними, не 
+стають markup
+response JSON і DOM
+Unicode
+не пошкоджується
+response JSON і DOM
+Дозволений довгий текст
+відображається за UI rules без виконання 
+коду
+DOM і відсутність client error
+IncidentComment.Text — 
+Добре / Відмінно
+перевірений за інвентаризацією і не має 
+аналогічного sink
+доповнена source-to-sink table
+Перед створенням fixed commit перевірте:
+• [ ] використано той самий marker і той самий record або відтворену процедуру reset/create;
+
+Лабораторна робота 05 · SecureLab
+Сторінка 37
+• [ ] збережене значення до і після fix не змінилося;
+• [ ] marker видно як дані, але його local action не відбувається;
+• [ ] legitimate complex text відображається без пошкодження.
+Після успішної перевірки створіть fixed commit. Збережіть hash і не створюйте тег до 
+завершення CORS/regression етапів.
+Контрольна точка CP-02 (Для всіх): типові хибні рішення
+Для всіх: Description; Добре / Відмінно: також IncidentComment.Text і helper. Перевірте себе й 
+збережіть докази: same input до і після fix, доказ незмінності значення в БД або response JSON, 
+код safe sink і заповнений finding. Слабкі рішення: змінити payload між двома перевірками; 
+виправити лише один екран; повернути HTML string через helper; зберігати formatted HTML 
+усупереч спільному scope; назвати HttpOnly cookie захистом від XSS (він обмежує читання 
+cookie JavaScript, але не усуває виконання injected code).
+Етап 3. Origin, CORS і межі browser credentials
+Для всіх: кроки 1–4 і 6–7 та базова CP-03. У таблицях прості запити — для всіх, запити із 
+заголовком/preflight та cookie — «Добре / Відмінно». Кроки 5 і 8 — «Добре / Відмінно».
+1. Визначте origins і передбачте результат
+Перед прогнозом пригадайте визначення origin і межу same-origin policy.
+Роль
+URL
+Origin
+API і штатний same-origin клієнт
+http://localhost:5080/
+browser-lab.html
+http://localhost:5080
+навчальний дозволений probe
+http://localhost:4173/
+http://localhost:4173
+навчальний недозволений probe
+http://localhost:4174/
+http://localhost:4174
+Порти 4173 і 4174 тут належать лише навчальному статичному серверу; Vite або інше frontend 
+build tooling не потрібне. Два localhost ports достатні для CORS-досліду, бо це різні origins. 
+Водночас вони не доводять поведінку SameSite: cross-origin і cross-site — різні поняття. Повний 
+CSRF model та antiforgery flow виконується в ЛР 6.
+До зміни конфігурації заповніть прогноз у docs/browser-security-evidence.md:
+Сценарій
+Чи доходить request 
+до API?
+Чи може browser 
+JavaScript прочитати 
+response?
+Чому
+same-origin client 5080 → 
+API 5080
+перевірити
+перевірити
+CORS не потрібен
+simple GET з probe 4173 → 
+API 5080
+перевірити
+ні без valid CORS 
+response
+browser SOP/CORS
+preflighted request з probe 
+4173 → API 5080
+спочатку доходить 
+OPTIONS; actual request 
+залежить від відповіді
+ні без успішного preflight
+browser preflight і 
+CORS
+simple GET з probe 4174 → 
+API 5080
+перевірити
+ні, якщо origin не в 
+allowlist
+browser SOP/CORS
+
+Лабораторна робота 05 · SecureLab
+Сторінка 38
+Сценарій
+Чи доходить request 
+до API?
+Чи може browser 
+JavaScript прочитати 
+response?
+Чому
+curl/.http → API
+перевірити
+не застосовується
+це не browser 
+JavaScript
+Не припускайте, що CORS error автоматично означає «request не було». Простий cross-origin 
+request може дійти до сервера й змінити стан, хоча browser не надасть response calling script. 
+Для request, який потребує preflight, невдалий OPTIONS зазвичай не допускає надсилання actual 
+request. Саме тому CORS не є CSRF control і не замінює server-side authorization.
+2. Підніміть реальну другу origin
+Використайте процес API, залишений працювати на етапі 1. Якщо його вже зупинено, запустіть 
+з кореня власного проєкту в першому terminal; другий процес на тому самому порту не 
+запускайте:
+dotnet run --project src/SecureLab.Api
+У двох інших terminals запустіть ту саму папку статичного клієнта на двох фіксованих портах. 
+Оберіть одну форму команди відповідно до середовища й використовуйте її для обох probes.
+У terminal для allowed probe на macOS, Linux або в Git Bash виконайте:
+python3 -m http.server 4173 --bind localhost --directory demonstrations/cors-probe
+У Windows PowerShell або Command Prompt, де Python Launcher доступний як py, еквівалентна 
+команда:
+py -3 -m http.server 4173 --bind localhost --directory demonstrations/cors-probe
+У другому terminal запустіть disallowed probe. На macOS, Linux або в Git Bash:
+python3 -m http.server 4174 --bind localhost --directory demonstrations/cors-probe
+У Windows PowerShell або Command Prompt:
+py -3 -m http.server 4174 --bind localhost --directory demonstrations/cors-probe
+Кожна команда займає свій terminal до зупинки через Ctrl+C; не запускайте обидві форми для 
+того самого порту одночасно.
+Відкрийте http://localhost:4173/ і http://localhost:4174/. Надана сторінка probe має поле 
+абсолютної адреси API й кнопку запиту з credentials: "include"; цю кнопку використайте для 
+окремого досліду credentials у кроці 5. Спочатку виконайте наведені нижче запити до /health у 
+DevTools Console кожної сторінки, щоб окремо перевірити базову CORS policy:
+const API_ORIGIN = "http://localhost:5080";
+await fetch(`${API_ORIGIN}/health`)
+  .then(async (response) => ({
+    status: response.status,
+    body: await response.text(),
+  }));
+Для доброго рівня виконайте також probe, який гарантовано потребує preflight через non-
+safelisted header:
+
+Лабораторна робота 05 · SecureLab
+Сторінка 39
+const API_ORIGIN = "http://localhost:5080";
+await fetch(`${API_ORIGIN}/health`, {
+  headers: { "X-Lab-Cors-Probe": "stage-3" },
+}).then(async (response) => ({
+  status: response.status,
+  body: await response.text(),
+}));
+Далі в цьому етапі «probe 4173/4174» означає сторінку на відповідному порту, а «простий 
+запит» і «запит із заголовком» — перший і другий фрагменти коду вище.
+Console сама виводить значення останнього виразу. У разі успіху ви побачите об’єкт {status: 
+200, body: '{"status":"ready"}'}. У Console можна писати await без async-функції; повторне 
+виконання фрагмента в тій самій вкладці Chrome зазвичай дозволяє; якщо браузер усе ж 
+повідомляє про повторне оголошення API_ORIGIN, оновіть сторінку й вставте весь потрібний 
+фрагмент разом із першим рядком const API_ORIGIN = "http://localhost:5080";. Обидва 
+фрагменти можна виконувати незалежно, у новій вкладці або private window.
+Очікуваний результат цього кроку (policy ще немає): прості запити з обох probes 
+завершуються помилкою — правильний стан «до». Для доброго рівня так само 
+відхилено обидва preflighted probes.
+Сторінка
+Запит
+Console
+Network
+4173 і 
+4174
+простий
+Uncaught TypeError: Failed to 
+fetch і рядок Access to fetch at 
+'http://localhost:5080/health' 
+from origin 
+'http://localhost:4173' has been 
+blocked by CORS policy: No 
+'Access-Control-Allow-Origin' 
+header is present on the requested 
+resource.
+є GET до 
+http://localhost:5080/health із 
+заголовком Origin; запит дійшов до 
+API, але у відповіді немає Access-
+Control-Allow-Origin
+4173 і 
+4174
+із 
+заголовк
+ом
+Uncaught TypeError: Failed to 
+fetch і …blocked by CORS policy: 
+Response to preflight request 
+doesn't pass access control check: 
+No 'Access-Control-Allow-Origin' 
+header is present on the requested 
+resource.
+є OPTIONS зі статусом 405 і заголовком 
+Access-Control-Request-Headers: x-
+lab-cors-probe; браузер не надсилає 
+actual GET; Chromium може показати 
+окремий рядок GET із помилкою CORS / 
+net::ERR_FAILED без отриманої 
+відповіді
+Перевірте топологію стенда:
+• у Network request URL починається з http://localhost:5080/;
+• request містить Origin: http://localhost:4173 або Origin: http://localhost:4174.
+Якщо запиту до 5080 немає або немає Origin, CORS-дослід ще не почався. 404 (File not 
+found) від 4173/4174 означає лише те, що запит пішов на статичний сервер (відносний URL). 
+Один рядок 404 для favicon.ico на сторінці probe — звичайна поведінка браузера, досліду він 
+не стосується. Якщо сама сторінка http://localhost:4173/ повертає 404, сервер запущено не 
+з кореня проєкту: команда з --directory demonstrations/cors-probe має виконуватися в 
+каталозі, де міститься global.json.
+
+Лабораторна робота 05 · SecureLab
+Сторінка 40
+Приклад спостереження — рисунок 8.
+Рисунок 8 — Стан «до» CORS policy, простий GET із 4173: у Network — CORS error, у Console — причина (немає 
+Access-Control-Allow-Origin). На рисунку запит має хвіст ?probe=…; ваш запит із Console називатиметься health. 
+Console показано фрагментом; повний текст причини читайте у власній панелі.
+3. Налаштуйте мінімальну навчальну CORS policy
+У baseline Program.cs CORS policy немає, бо штатний клієнт і API мають origin 
+http://localhost:5080. Для відтворюваного навчального стенда додайте policy, яка 
+реєструється лише в Development і дозволяє тільки probe http://localhost:4173:
+Блок AddCors розмістіть серед інших builder.Services… — до рядка var app = 
+builder.Build();. Після Build() перелік сервісів змінювати вже не можна.
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddCors(options =>
+    {
+        options.AddPolicy("Lab05BrowserProbe", policy =>
+        {
+            policy.WithOrigins("http://localhost:4173")
+                  .WithMethods("GET")
+                  .WithHeaders("X-Lab-Cors-Probe");
+        });
+    });
+}
+Не додавайте / наприкінці origin. Якщо ваш фактичний scenario використовує POST/PATCH і 
+Content-Type: application/json, перелічіть саме потрібні method та headers, наприклад 
+WithMethods("GET", "POST") і WithHeaders("Content-Type", "X-Lab-Cors-Probe"). Не 
+розширюйте policy через AllowAnyMethod() або AllowAnyHeader() лише для усунення помилки.
+Після scaffold ЛР 3 у вашому Program.cs уже послідовно є UseAuthentication, 
+UseAuthorization, UseDefaultFiles, UseStaticFiles. Scaffold ЛР 5 їх не змінює. Знайдіть 
+наявний блок: не додавайте другі копії. Без явного UseRouting Minimal API виконує 
+маршрутизацію автоматично; тепер додайте один UseRouting() перед цим блоком і умовний 
+UseCors одразу після нього. Так CORS працює до authentication/authorization і додає дозволені 
+headers також до 401/403. Спільна middleware headers, exception handling та реєстрація 
+Development-довідника лишаються вище; наявні Map... — нижче.
+Якщо ви додали UseRateLimiter у ЛР 3, збережіть його після routing та authentication (і CORS), 
+до endpoints; не видаляйте власний rate-limit control. Цей порядок дозволяє limiter 
+
+Лабораторна робота 05 · SecureLab
+Сторінка 41
+використовувати endpoint metadata й principal. Нижче показано блок після додавання, без 
+необов’язкового limiter:
+app.UseRouting();
+if (app.Environment.IsDevelopment())
+{
+    app.UseCors("Lab05BrowserProbe");
+}
+app.UseAuthentication();
+app.UseAuthorization();
+app.UseDefaultFiles();
+app.UseStaticFiles();
+// Далі — наявні Map...
+Це фрагмент порядку в існуючому Program.cs, не повна заміна файла. CORS у Development 
+поширюватиметься також на статичні відповіді; штатний same-origin клієнт від нього не 
+залежить. Перезапустіть API.
+Коли policy підключено, у цьому стенді CORS middleware відповідає на розпізнаний preflight 
+статусом 204 — і для дозволеного, і для недозволеного origin. Різниця лише в заголовках: для 
+4173 відповідь містить Access-Control-Allow-Origin, -Methods і -Headers, для 4174 — жодного. 
+Тому не робіть висновок за статусом. Якщо OPTIONS повертає 405, CORS middleware не працює: 
+перевірте, що API перезапущено, виклик UseCors є, а середовище — Development. Не 
+використовуйте OPTIONS:401 як обов’язковий симптом неправильного порядку: у наданому 
+pipeline навіть UseCors після UseAuthorization може відповісти на preflight 204, тоді як actual 
+protected GET дає 401 без Allow-Origin. Перевірка порядку: у Console сторінки 
+http://localhost:4173/ виконайте запит без cross-origin cookie, навіть якщо в іншій вкладці 
+ви вже ввійшли (готовий файл — resources/copyable/example-24.js):
+await fetch("http://localhost:5080/api/incidents")
+  .then(response => response.status);
+Очікується 401: JavaScript прочитав HTTP-відмову, отже CORS дозволяє читати також її. Поруч 
+Console може показати червоний рядок Failed to load resource: the server responded with 
+a status of 401 (Unauthorized) — це позначка браузера про HTTP-відмову, а не CORS-
+помилка. Ознака успіху — саме число 401 як результат виразу й відсутність слів blocked by 
+CORS policy. За замовчуванням fetch має credentials: "same-origin", тому cookie API на 
+цьому іншому origin не надсилається. Не додавайте credentials: "include" тут: без 
+AllowCredentials() (лише крок 5 для доброго рівня) він дає TypeError навіть за правильного 
+порядку. Якщо замість числа маємо TypeError з повідомленням про відсутній Allow-Origin, 
+звірте фактичні response headers, Development, точний origin та положення UseCors до 
+UseAuthorization. 401 стосується успадкованого protected endpoint ЛР 4; якщо він раптом 
+повертає 200 без cookie, перевірте захист endpoint у своєму v0.4.0, не приписуйте це успіху 
+авторизації. Інша додана middleware може змінити OPTIONS: перевіряйте фактичний route і 
+response headers.
+Офіційне правило порядку й параметри policy наведено в документації ASP.NET Core про 
+CORS.
+4. Перевірте actual browser behavior
+Повторіть прості probes (для доброго — також із заголовком) спочатку на 
+http://localhost:4173/, потім на http://localhost:4174/. У Network запишіть спостережені, 
+а не очікувані значення:
+Що перевірити
+Де шукати
+Що це означає
+Origin
+request headers
+з якого origin сторінка надіслала запит
+
+Лабораторна робота 05 · SecureLab
+Сторінка 42
+Що перевірити
+Де шукати
+Що це означає
+OPTIONS
+стовпець Method у Network
+preflight, який надіслав браузер
+Access-Control-Request-
+Method
+request headers запису 
+OPTIONS
+метод запланованого actual request
+Access-Control-Request-
+Headers
+request headers запису 
+OPTIONS
+які non-safelisted заголовки матиме 
+actual request
+Access-Control-Allow-
+Origin
+response headers
+якому origin API дозволяє читати 
+відповідь
+Access-Control-Allow-
+Methods, -Headers
+response headers запису 
+OPTIONS
+дозволені метод і заголовки
+Access-Control-Allow-
+Credentials
+response headers, лише в 
+досліді з кроку 5
+відповідь на запит із cookie дозволено 
+читати
+За policy з кроку 3 заголовків Access-Control-Max-Age і Vary: Origin у відповідях не буде: 
+перший з’являється лише після SetPreflightMaxAge(…), другий не потрібний для цього 
+фіксованого allowlist з одним origin; за кількох origin або функції перевірки origin поведінка може 
+відрізнятися. Їхня відсутність у вашому стенді — не помилка.
+Preflight — автоматичний OPTIONS request браузера, а не login і не authorization check. Навіть 
+успішний preflight не доводить, що current principal має право на resource; це окремо перевіряє 
+API endpoint.
+Результат preflight зберігається в окремому CORS-preflight cache. Перед спостереженням 
+увімкніть Disable cache у Network. Якщо повторний OPTIONS усе одно не з’являється, відкрийте 
+нове private window/окреме середовище браузера або змініть лише URL query (наприклад, 
+/health?probe=2); ім’я X-Lab-Cors-Probe збережіть, бо саме його дозволяє policy; звичайне 
+очищення HTTP cache не завжди очищує preflight cache. У фактичному application flow preflight 
+часто спричиняє не сам method, а Content-Type: application/json чи інший non-safelisted 
+header — підтверджуйте trigger за Access-Control-Request-*, а не вгадуйте.
+Очікувана матриця після додавання навчальної policy:
+Browser origin і 
+probe
+Що має дійти до API
+Що доступно JavaScript
+Мінімальний доказ
+4173, simple GET
+actual GET
+response доступний після 
+match policy
+Origin, Access-Control-
+Allow-Origin, status
+4173, custom 
+header
+OPTIONS, потім actual 
+GET
+response доступний після 
+успішного preflight
+обидва requests і allow headers
+4174, simple GET
+actual GET може дійти
+response не надається 
+script
+Network trace; API log/trace, 
+якщо наявний
+4174, custom 
+header
+OPTIONS; actual GET 
+не має піти після 
+відмови
+response не надається 
+script
+невдалий preflight; actual GET 
+не надіслано, хоча рядок 
+помилки GET може бути у 
+Network
+Якщо starter уже має request logging або trace id, додайте до evidence один мінімальний API-
+side запис для simple request з 4174: це прямо показує, що CORS не зупинив request. Не 
+
+Лабораторна робота 05 · SecureLab
+Сторінка 43
+вмикайте надмірне logging і не записуйте cookie, Authorization, password, token або повний 
+request body.
+Конкретні спостереження для тієї самої матриці:
+Сторінка і запит
+Console
+Network
+4173, простий
+{status: 200, body: 
+'{"status":"ready"}'}
+GET 200; у відповіді Access-Control-
+Allow-Origin: http://localhost:4173
+4173, із 
+заголовком
+{status: 200, body: 
+'{"status":"ready"}'}
+OPTIONS 204 з трьома Access-Control-
+Allow-*, потім GET 200
+4174, простий
+TypeError: Failed to fetch; …No 
+'Access-Control-Allow-Origin' 
+header is present on the requested 
+resource.
+GET надіслано й позначено як помилку 
+CORS; заголовка Access-Control-Allow-
+Origin у відповіді немає
+4174, із 
+заголовком
+TypeError: Failed to fetch; …
+Response to preflight request 
+doesn't pass access control check: 
+No 'Access-Control-Allow-Origin' 
+header…
+OPTIONS 204 без Access-Control-*; 
+можливий рядок GET із помилкою CORS 
+без отриманої відповіді: actual request не 
+надіслано
+Код сторінки в усіх випадках відмови отримує однаковий TypeError: Failed to fetch. Причину 
+називає лише рядок браузера в Console (наведено формулювання Chrome/Edge; у Firefox вони 
+інші, але містять ту саму назву заголовка):
+Фрагмент повідомлення в Console
+Що сталося
+Що перевірити
+No 'Access-Control-Allow-Origin' 
+header is present on the 
+requested resource
+відповідь прийшла без 
+дозволу для цього origin
+чи origin сторінки точно збігається з 
+WithOrigins (схема, host, порт, без 
+/ наприкінці); чи перезапущено API; 
+статус у Network — якщо там 
+401/403, див. крок 5
+Response to preflight request 
+doesn't pass access control 
+check: No 'Access-Control-Allow-
+Origin'…
+preflight відхилено
+те саме, але дивіться відповідь на 
+OPTIONS
+Request header field … is not 
+allowed by Access-Control-Allow-
+Headers in preflight response
+origin дозволено, але 
+заголовка немає у 
+WithHeaders
+назву заголовка в Access-Control-
+Request-Headers; для JSON-запиту 
+це content-type
+The value of the 'Access-
+Control-Allow-Credentials' 
+header in the response is '' 
+which must be 'true' when the 
+request's credentials mode is 
+'include'
+запит надіслано з 
+credentials: "include", 
+а policy не має 
+AllowCredentials()
+це очікувано для кнопки probe до 
+кроку 5
+ReferenceError: API_ORIGIN is 
+not defined
+вставлено лише частину 
+фрагмента; запит до API 
+ще не надсилався
+вставте весь фрагмент із 
+resources/copyable/example-20.j
+s або example-21.js, включно з 
+першим рядком const API_ORIGIN 
+= "http://localhost:5080";
+
+Лабораторна робота 05 · SecureLab
+Сторінка 44
+Фрагмент повідомлення в Console
+Що сталося
+Що перевірити
+лише 
+net::ERR_CONNECTION_REFUSED, без 
+слів CORS policy
+API не запущено або порт 
+інший
+процес dotnet run, адресу в полі 
+probe
+Приклад спостереження — рисунок 9.
+Рисунок 9 — Після CORS policy: угорі — GET 200 із дозволеного origin 4173 і Access-Control-Allow-Origin: 
+http://localhost:4173; унизу — CORS error із 4174. Стан відповідає кроку 5: є Access-Control-Allow-Credentials: true; з 
+мінімальною policy кроку 3 цього рядка не буде. У вас URL — http://localhost:5080/health, без ?probe=…; розгорніть 
+Request headers і перевірте Origin. Повний текст причини читайте у власній Console.
+
+Лабораторна робота 05 · SecureLab
+Сторінка 45
+Приклад спостереження — рисунок 10.
+Рисунок 10 — Preflight із 4173 (Добре / Відмінно): OPTIONS 204 і наступний GET 200 (у Chrome — «GET + Preflight»); 
+request містить x-lab-cors-probe, response дозволяє точний origin, заголовок і метод. Access-Control-Allow-Credentials і 
+третій запит incidents відповідають кроку 5. У вас URL — http://localhost:5080/health, без ?probe=…; Name і 
+Method/Status — колонки однієї таблиці.
+5. Перевірте credentials і межі policy (Добре / Відмінно)
+Для cross-origin cookie profile browser client має явно використовувати credentials: "include", 
+а server policy — exact trusted origins і .AllowCredentials():
+
+Лабораторна робота 05 · SecureLab
+Сторінка 46
+await fetch("http://localhost:5080/api/incidents", {
+  credentials: "include",
+  headers: { Accept: "application/json" },
+});
+policy.WithOrigins("http://localhost:4173")
+      .WithMethods("GET")
+      .WithHeaders("X-Lab-Cors-Probe")
+      .AllowCredentials();
+Дослід має сенс лише для endpoint із cookie-authentication, наприклад GET /api/incidents; 
+/health не доводить надсилання cookie. Кнопка «GET» на сторінці probe вже надсилає запит із 
+credentials: "include" за адресою з поля «API URL».
+1. Для доброго рівня додайте до policy .AllowCredentials() (фрагмент вище) і перезапустіть 
+API.
+2. У звичайному вікні браузера відкрийте http://localhost:5080/auth-lab.html і ввійдіть як 
+Alice (Login: 204). Cookie сеансу тепер зберігається для localhost.
+3. У тому самому вікні відкрийте http://localhost:4173/ і натисніть «GET». Очікування: під 
+кнопкою 200: […] зі списком інцидентів. У Network request містить Cookie і Origin: 
+http://localhost:4173, response — Access-Control-Allow-Origin: http://localhost:4173 і 
+Access-Control-Allow-Credentials: true.
+4. Відкрийте http://localhost:4174/ і натисніть «GET». Очікування: «Браузер не надав 
+response JavaScript…», у Console — No 'Access-Control-Allow-Origin' header…. Погляньте 
+на цей запит у Network: він пішов до API разом із cookie й був виконаний; браузер лише не 
+показав відповідь сторінці. Це спостереження знадобиться в кроці 8.
+5. Лише як короткий негативний контроль приберіть .AllowCredentials(), перезапустіть API й 
+повторіть пункт 3. Очікування: відмова з повідомленням The value of the 'Access-Control-
+Allow-Credentials' header in the response is '' which must be 'true'…. credentials: 
+"include" у fetch і AllowCredentials() на сервері працюють лише разом.
+6. Поверніть .AllowCredentials() і повторіть пункт 3 у приватному вікні без входу. Очікувано: у 
+Network статус 401 із CORS headers для 4173, а JavaScript може прочитати саме HTTP-
+відмову. Якщо натомість Console повідомляє про відсутність Allow-Origin, перевірте, чи 
+UseCors справді стоїть до UseAuthorization за кроком 3.
+Те, що cookie надсилається з 4173 на 5080, не суперечить SameSite=Lax: порт не входить до 
+поняття site, тому обидві адреси localhost — той самий site, хоча й різні origins. Саме через це 
+два порти localhost не є доказом cross-site поведінки SameSite. Надсилання конкретної cookie 
+залежить також від її Domain/host, Path, Secure і схеми.
+Для підсумкового доброго рівня залиште .AllowCredentials() лише в Development policy для 
+єдиного origin http://localhost:4173: cookie-дослід цього потребує. Для достатнього рівня 
+дослід без credentials використовує тільки /health, AllowCredentials не потрібний. У production-
+like профілі ЛР 6 ця навчальна policy вимкнена.
+Не комбінуйте .AllowAnyOrigin() і .AllowCredentials(). Wildcard * не є valid origin для 
+credentialed response; ASP.NET Core відхиляє таку policy ще під час запуску: dotnet run 
+завершується з Application startup exception і текстом The CORS protocol does not allow 
+specifying a wildcard (any) origin and credentials at the same time…, порт 5080 не 
+відкривається. Відбиття кожного отриманого Origin без перевірки allowlist фактично 
+перетворює policy на «дозволено всім».
+CORS preflight сам не має містити cookie; успішна відповідь на нього лише дозволяє браузеру 
+перейти до actual credentialed request. Докладний опис headers, cache та credentials наведено в 
+MDN CORS guide.
+
+Лабораторна робота 05 · SecureLab
+Сторінка 47
+Приклад спостереження — рисунок 11.
+Рисунок 11 — Cookie-дослід із 4173 (Добре / Відмінно): після GET із credentials: include запит incidents отримав 200, 
+response містить точний Access-Control-Allow-Origin та Access-Control-Allow-Credentials: true. Порт на рисунку — 
+5095; у себе залиште 5080. Request headers згорнуто; значення Cookie до доказів не додавайте.
+6. Порівняйте browser і direct HTTP
+Виконайте безпечний direct request без реальних credentials. На macOS, Linux або в Git Bash:
+curl -i http://localhost:5080/health
+У Windows PowerShell викликайте саме curl.exe: у PowerShell 5.1 ім’я curl може означати 
+Invoke-WebRequest, для якого ці аргументи не підходять. Еквівалентна команда:
+curl.exe -i http://localhost:5080/health
+Окремо можна надіслати Origin вручну, щоб побачити server headers, але це все одно не 
+змусить curl застосовувати browser SOP. На macOS, Linux або в Git Bash:
+curl -i -H "Origin: http://localhost:4174" \
+  "http://localhost:5080/health"
+У Windows PowerShell використайте інший символ продовження рядка — зворотний апостроф 
+наприкінці першого рядка без пробілів після нього:
+curl.exe -i -H "Origin: http://localhost:4174" `
+  "http://localhost:5080/health"
+Заповніть таблицю фактичних результатів:
+Клієнт
+API status / API-side 
+evidence
+Чи доступний 
+response коду сторінки
+Що застосовано
+same-origin browser 
+5080
+фактичний результат
+так
+API 
+authentication/authorization; 
+CORS не потрібен
+
+Лабораторна робота 05 · SecureLab
+Сторінка 48
+Клієнт
+API status / API-side 
+evidence
+Чи доступний 
+response коду сторінки
+Що застосовано
+browser з allowed 
+probe 4173
+фактичний результат
+так, якщо policy match
+CORS + незалежні API 
+controls
+browser з disallowed 
+probe 4174
+фактичний результат 
+для simple/preflight 
+scenario
+браузер не відкриває 
+відповідь коду сторінки
+SOP/CORS; серверні 
+перевірки API діють 
+незалежно
+.http / curl
+фактичний результат
+direct client читає HTTP 
+response
+API controls, не SOP/CORS
+curl читає response не тому, що «обійшов API», а тому, що same-origin policy — правило 
+браузера для web content. Direct client усе одно має пройти API authentication, authorization, 
+validation та інші server controls.
+7. Зафіксуйте правильний кінцевий стан
+Навчальні origins 4173 і 4174 потрібні, щоб побачити механізм, але не визначають production-
+архітектуру застосунку. Підсумковий fixed state, на який указує v0.5.0, має один визначений 
+режим CORS: policy Lab05BrowserProbe з точним дозволом для http://localhost:4173 
+зберігається в коді, але реєструється і застосовується лише в Development.
+• Залиште умовні блоки AddCors і UseCors з Етапу 3, крок 3: allowed origin — лише 
+http://localhost:4173; http://localhost:4174 лишається негативним контролем. Для 
+достатнього рівня AllowCredentials не потрібний; для доброго/відмінного рівня після 
+негативного контролю залиште AllowCredentials у цій Development policy з одним exact origin.
+• У docs/browser-security-evidence.md прямо позначте policy як навчальний Development-
+стенд, запишіть команди запуску probes з Етапу 3, крок 2 і відокремте її від штатної same-
+origin топології http://localhost:5080.
+• Перед створенням v0.5.0 повторіть REG-CORS-01 саме з цього fixed state. Для Origin: 
+http://localhost:4173 response має містити Access-Control-Allow-Origin: 
+http://localhost:4173; для Origin: http://localhost:4174 header Access-Control-Allow-
+Origin має бути відсутній.
+• У Production не реєструйте й не застосовуйте цю policy та не додавайте навчальні origins 
+через конфігурацію середовища.
+У будь-якому середовищі заборонені AllowAnyOrigin(), безумовне відбиття request Origin і 
+дозвіл навчальної policy у Production. Не розширюйте allowlist лише для усунення CORS error.
+8. Зафіксуйте review і зв’язок із CSRF (Добре / Відмінно)
+Для всіх рівнів розуміння меж CORS потрібне для пояснення browser/direct HTTP; окремий 
+письмовий review потрібний для «Добре» та «Відмінно». У DEL-03 стисло розрізніть XSS, 
+CORS, CSRF та authorization на власному flow. Запишіть коротке пояснення: CORS керує тим, 
+чи браузер надає cross-origin response JavaScript. Cookie може надсилатися браузером за 
+власними правилами, а state-changing request потребує окремого antiforgery/CSRF control. 
+Antiforgery/CSRF захист є частиною ЛР 6; не підміняйте наступну роботу довільним middleware 
+implementation тут.
+Контрольна точка CP-03 (за обраним рівнем): типові хибні рішення
+Для достатнього рівня покажіть simple allowed/disallowed і direct HTTP. Для доброго додайте 
+preflight та cookie-дослід. Перелік для повної перевірки:
+
+Лабораторна робота 05 · SecureLab
+Сторінка 49
+• same-origin request на 5080;
+• Network trace simple request із 4173;
+• Добре / Відмінно: actual preflight з 4173 і негативний контроль 4174;
+• Добре / Відмінно: cookie-дослід і review кроку 8;
+• browser result для 4174;
+• direct curl response;
+• обґрунтування фінального стану CORS.
+Помилки: назвати 404 статичного сервера CORS-блокуванням; не перевірити absolute target 
+URL і Origin; вважати OPTIONS authorization request; тестувати CORS тільки через 
+Scalar/Swagger UI на API origin; відображати raw CORS error через innerHTML; безумовно 
+відбивати кожний Origin; пояснювати CORS як захист API від Postman; вважати CORS заміною 
+CSRF protection.
+Етап 4. CSP, підсумкова регресія та Git-стан
+Для всіх: кроки 3–5 із ручними регресіями. Кроки 1–2 — «Добре / Відмінно»; DOM-тест і 
+поглиблені перевірки в кроці 3 — «Відмінно». Самоперевірку повторюйте для свого 
+накопичувального рівня.
+1. Складіть мінімальну CSP із фактичних ресурсів (Добре / Відмінно)
+Перш ніж додавати header, у Network установіть, звідки застосунок реально завантажує 
+document, scripts, styles, images, fonts і виконує API requests. Не переносьте policy з іншого 
+проєкту. Зафіксуйте в docs/browser-security-evidence.md таблицю:
+Директива
+Фактична потреба 
+застосунку
+Обране джерело
+Що policy обмежує
+default-src
+default fallback
+наприклад 'self'
+неявні типи ресурсів
+script-src
+власні JS modules / 
+конкретний потрібний host
+мінімальний список
+ін’єкцію або завантаження 
+script
+style-src
+CSS starter
+мінімальний список
+небажані джерела styles
+connect-src
+API origin
+точний API origin
+browser connections
+img-src
+фактичні джерела images
+мінімальний список
+завантаження images
+frame-ancestors
+чи дозволене embedding
+'none' або точні parent 
+origins
+clickjacking через 
+embedding
+У базовій топології клієнт і API віддає один застосунок, тому для постійного основного flow 
+зазвичай достатньо connect-src 'self'. Навчальна друга origin з етапу 3 є тимчасовим 
+стендом для CORS-експерименту: не додавайте її до постійної CSP, якщо фінальний клієнт із 
+неї не працює.
+Відмінно: обов’язково почніть із Content-Security-Policy-Report-Only, збережіть докази й 
+потім перейдіть до enforcement. Добре: кінцевий стан — перевірена базова CSP у enforcement; 
+report-only нижче можна використати для підготовки, окремі докази цього режиму не потрібні. 
+Якщо проходите початковий дослід report-only, застосуйте Content-Security-Policy-Report-
+Only. У цьому режимі браузер нічого не блокує, а лише пише про порушення в Console; без 
+report-to звітів він нікуди не надсилає. Клієнтський flow цієї роботи — сторінки / (список і 
+
+Лабораторна робота 05 · SecureLab
+Сторінка 50
+деталі), /browser-lab.html і /auth-lab.html; сторінка Development-довідника /scalar/v1 до 
+нього не належить.
+У Program.cs уже є спільна middleware для response headers. Додайте CSP до неї, а не до 
+appsettings.json і не до другої middleware. Знайдіть наявний app.Use блок після 
+UseStatusCodePages і до UseDefaultFiles/UseStaticFiles; змініть саме його. Наведений 
+фрагмент показує місце й форму зміни; рядок policy замініть результатом власної таблиці 
+ресурсів:
+var csp = "default-src 'self'; frame-ancestors 'none'";
+app.Use(async (context, next) =>
+{
+    context.Response.Headers.XContentTypeOptions = "nosniff";
+    context.Response.Headers["Referrer-Policy"] = "no-referrer";
+    var isDevelopmentApiReference =
+        app.Environment.IsDevelopment()
+        && context.Request.Path.StartsWithSegments("/scalar");
+    if (!isDevelopmentApiReference)
+    {
+        context.Response.Headers[
+            "Content-Security-Policy-Report-Only"] = csp;
+    }
+    await next(context);
+});
+/scalar/v1 формує окремий UI за допомогою стороннього package і може мати власні inline-
+ресурси та зовнішні джерела. Є два припустимі рішення для лабораторної роботи:
+1. застосовувати досліджувану CSP лише до відповідей основного клієнта;
+2. задокументувати точний виняток для /scalar лише в Development, як у фрагменті вище.
+Не послаблюйте CSP основного клієнта через потреби Development-довідника. Якщо обрали 
+виняток, зафіксуйте його межу й причину як залишковий ризик. Сторонній UI-package 
+приносить власні джерела ресурсів; у ЛР 6 цю залежність перевіряють окремо.
+Після зміни C# зупиніть лише власний процес API через Ctrl+C, запустіть dotnet run --project 
+src/SecureLab.Api знову. Очікування: API слухає 5080, document віддається 200, і новий 
+header є на відповіді. Без перезапуску вже запущений binary не зміниться. Готовий фрагмент 
+headers (resources/copyable/csp-headers.cs) — зразок місця зміни, а не повна заміна Program.cs.
+Як побачити заголовок. Увімкніть у Network Disable cache, оновіть сторінку, виберіть перший 
+запис (сам документ) → Headers → Response Headers. Має бути рядок Content-Security-
+Policy-Report-Only: default-src 'self'; frame-ancestors 'none' (або ваша policy). Те саме 
+без браузера: curl -sS -D - -o /dev/null http://localhost:5080/ (у Windows PowerShell — 
+curl.exe -sS -D - -o NUL http://localhost:5080/).
+Що вважати результатом. Пройдіть усі три сторінки flow з виправленим клієнтом. Якщо клієнт 
+завантажує лише власні файли з http://localhost:5080, повідомлень про CSP у Console не 
+буде — це і є очікуваний результат: запишіть у таблицю, що legitimate flow не порушує policy.
+Як виглядає порушення. Щоб переконатися, що policy справді діє, зробіть одне кероване 
+порушення. На сторінці http://localhost:5080/ виконайте в Console:
+new Image().src = "http://localhost:4173/x.png";
+Сторінка намагається завантажити зображення з іншого origin, а default-src 'self' цього не 
+дозволяє. У режимі report-only в Console з’явиться (виберіть Default levels — не вмикайте 
+фільтр «лише Errors»):
+
+Лабораторна робота 05 · SecureLab
+Сторінка 51
+Loading the image 'http://localhost:4173/x.png' violates the following Content Security 
+Policy directive: "default-src 'self'". Note that 'img-src' was not explicitly set, so 
+'default-src' is used as a fallback. The policy is report-only, so the violation has been 
+logged but no further action has been taken.
+Точне формулювання залежить від версії браузера; шукайте слова Content Security Policy, 
+назву директиви й позначку report-only. Це повідомлення можна записати як «фактично 
+побачений violation» із поясненням, що його спричинено навмисно.
+Перевірте основний flow, запишіть фактично побачений violation і скоригуйте policy. Для 
+«Добре» та «Відмінно» кінцевий стан — enforcement: у тій самій middleware замініть ім’я header 
+Content-Security-Policy-Report-Only на Content-Security-Policy, а не додавайте ще одну 
+middleware чи два суперечливі CSP headers. Для відмінного рівня збережіть докази обох 
+послідовних режимів.
+У enforcement виконайте команду з new Image() (для «Відмінно» — повторіть ту саму пробу 
+після report-only). Тепер повідомлення закінчується словами The action has been blocked., а 
+в Network запит до localhost:4173 позначено як заблокований.
+Дві пастки цього кроку:
+• Кеш. Статичні сторінки браузер перевіряє запитом зі статусом 304 і бере заголовки відповіді 
+зі свого кешу. Після зміни імені або значення CSP header він може й далі застосовувати 
+стару policy. Працюйте з увімкненим Disable cache і переконайтеся, що документ прийшов зі 
+статусом 200, а серед response headers є лише один CSP header.
+• CSP маскує невиправлений sink. За enforcement default-src 'self' браузер блокує inline 
+event handler, тому канонічний marker не виконається навіть на vulnerable commit. Висновок 
+«sink виправлено» робіть лише за DOM: в Elements має бути текстовий вузол, а не елемент 
+<img>. Якщо <img> є, а marker не спрацював, — це заслуга CSP, а sink лишився 
+небезпечним. Саме тому CSP називають defense in depth, а не виправленням.
+Не додавайте unsafe-inline, * або цілу зовнішню доменну зону тільки для припинення Console 
+errors. Якщо основний клієнт використовує inline handler, спершу перенесіть його до 
+зовнішнього JavaScript-файла та зареєструйте через DOM event listener.
+frame-ancestors не має fallback до default-src, тому його вказують явно. Якщо застосунок не 
+повинен вбудовуватися, frame-ancestors 'none' є зрозумілою політикою; якщо вбудовування 
+продуктово потрібне, запишіть точні дозволені parent origins. Деталі синтаксису звіряйте з 
+посібником MDN про CSP та довідкою 
+ 
+ frame-ancestors
+ 
+ .
+
+Лабораторна робота 05 · SecureLab
+Сторінка 52
+Приклад спостереження — рисунок 12.
+Рисунок 12 — CSP report-only (Добре / Відмінно): документ browser-lab.html отримано зі статусом 200, у Response 
+Headers — Content-Security-Policy-Report-Only, nosniff і no-referrer; Console містить порушення з позначкою report-
+only, без блокування. У вашому кроці відкрито / на порту 5080, а команда використовує x.png замість csp-probe.svg; 
+зміст попередження однаковий. Повідомлення тут показано частинами; повний текст читайте у власній Console, 
+увімкнувши Info у списку Default levels.
+2. Перевірте наявні browser headers і обґрунтуйте політику (Добре / Відмінно)
+Baseline уже встановлює X-Content-Type-Options: nosniff і Referrer-Policy: no-referrer у 
+спільній middleware Program.cs. Не додавайте ці headers повторно. Для доброго рівня потрібно 
+виконати реальну роботу перевірки й обґрунтування:
+1. покажіть обидва headers на фактичній відповіді основного клієнта в Network;
+2. поясніть, який конкретний ризик зменшує кожен із них;
+3. обґрунтуйте, чи no-referrer відповідає navigation needs вашого клієнта, чи потрібна інша 
+policy;
+4. додайте до тієї самої middleware CSP з явним frame-ancestors і перевірте її на фактичній 
+відповіді.
+Header/control
+Baseline або обрана 
+policy
+Який ризик зменшує
+Чого не замінює
+X-Content-Type-
+Options
+baseline nosniff
+небажане MIME sniffing
+правильний server 
+Content-Type і validation
+
+Лабораторна робота 05 · SecureLab
+Сторінка 53
+Header/control
+Baseline або обрана 
+policy
+Який ризик зменшує
+Чого не замінює
+Referrer-Policy
+baseline no-referrer або 
+обґрунтована заміна
+надмірне передавання 
+referrer information
+заборону розміщувати 
+secrets у URL
+frame-ancestors у 
+CSP
+'none' або точний 
+allowlist
+embedding/clickjacking 
+context
+authorization або XSS fix
+Не декларуйте header «перевіреним», доки не побачите його в response headers релевантної 
+сторінки. X-Frame-Options — старіший механізм обмеження embedding; CSP frame-ancestors 
+— сучасний. Якщо залишаєте обидва, узгодьте політику (наприклад DENY та none); 
+суперечливі значення ускладнюють перевірку різних браузерів. Варіанти Referrer-Policy 
+звіряйте з довідкою MDN.
+3. Створіть repeatable XSS- і CORS-регресії
+Для достатнього рівня підходить manual procedure, якщо інший студент може повторити її без 
+усних пояснень. Запишіть її як REG-XSS-01:
+Поле
+Вміст
+Передумови
+commit hash, reset command, local account, browser origin
+Вхід
+точний канонічний harmless marker з однорядкового файла marker 
+(resources/lab05-marker.txt), без secrets і зовнішніх hosts
+Кроки
+create/open/render flow із назвами files або UI actions
+Очікуваний результат
+marker не виконується; DOM містить data/text; normal text works
+Негативний контроль
+на vulnerable commit marker виконував передбачену local-only дію
+Доказ
+Network/Elements observation і назви relevant source files
+Окремо доведіть, що виправлено sink, а не змінено збережене значення: значення в БД та API 
+response після fix має збігатися з вхідним значенням у негативному контролі; змінюється лише 
+його безпечне відображення в DOM.
+Якщо додаєте automated browser test, він має перевіряти DOM behavior, наприклад text node 
+або відсутність marker effect, а не тільки API 200. Не вигадуйте passed result: у звіті наведіть 
+фактично виконану command і фактичний результат. Unit test render helper прийнятний лише 
+тоді, коли environment справді виконує DOM rendering.
+Відтворюваний тест реального DOM без додаткового framework (Відмінно)
+Для відмінного рівня допустимий збережений JavaScript-тест, який запускається в Console 
+справжнього браузера на /browser-lab.html і автоматично перевіряє DOM; простого 
+перегляду коду чи пошуку слова innerHTML недостатньо. Нижче — форма тесту для опису. 
+Готовий тест DOM (resources/copyable/description-dom.js) рекомендовано зберегти як 
+tests/browser/description-dom.js або запускати цілком у Console. Важливий фактичний 
+DOM-тест і його доказ у DEL-01, а не нове обов’язкове ім’я файла. Перед запуском увійдіть як 
+дозволений глядач, оновіть сторінку (щоб попередній атрибут marker зник), уведіть Guid свого 
+запису з канонічним marker і запустіть блок цілком. load() — функція наданого browser-lab.js.
+await (async () => {
+  const check = (condition, message) => {
+
+Лабораторна робота 05 · SecureLab
+Сторінка 54
+    if (!condition) throw new Error(message);
+  };
+  const id = document.querySelector("#incident-id").value.trim();
+  check(id.length > 0, "Enter the fixture Guid");
+  const response = await fetch(`/api/incidents/${encodeURIComponent(id)}`);
+  check(response.status === 200, `Unexpected HTTP ${response.status}`);
+  const data = await response.json();
+  check(data.description.includes("data-lab05-marker"), "Wrong fixture");
+  check(document.querySelector("#lab05-marker-target")
+    .getAttribute("data-lab05-marker") === null, "Reload before test");
+  await load();
+  const box = document.querySelector("#description");
+  check(box.textContent === data.description, "Text changed");
+  check(box.childElementCount === 0, "Data became HTML elements");
+  await new Promise(resolve => setTimeout(resolve, 500));
+  check(document.querySelector("#lab05-marker-target")
+    .getAttribute("data-lab05-marker") === null, "Marker executed");
+  console.log("PASS: persisted description rendered as plain text");
+})();
+Цей тест падає на unsafe sink незалежно від CSP, бо перевіряє відсутність HTML-елементів, а 
+не лише виконання marker. Збережіть фактичний FAIL на vulnerable і PASS на fixed, commits і 
+браузер у evidence. Самостійно додайте перевірку кожного comments[].text, повторного render 
+без дублювання та позитивних рядків із таблиці normal text. Порівнюйте отриманий JSON із 
+збереженим тестовим значенням; не вважайте тестом випадок, коли marker був вирізаний до 
+БД.
+У scaffold два sink: description і comments. Третього прихованого sink немає. Для відмінного 
+рівня поглиблено перевірте другий sink і URL/attribute context нейтральним прикладом; не 
+створюйте нової вразливості у застосунку заради критерію. Нейтральний приклад 
+URL/атрибута наведено в готовому safe-url.js (resources/copyable/safe-url.js). Файл виводить сім 
+рядків: ті самі п’ять, що в Етапі 2 (два дозволені URL і тричі null), а потім 
+http://localhost:5080/incidents/1 — href створеного посилання — і null: атрибута onclick 
+у посилання немає. Рядки http/https дозволені цим демонстраційним правилом, а для продукту 
+потрібна власна потреба/allowlist hosts. Саме призначення href не здійснює запит, посилання у 
+пробі не натискають. Відмінно: у DEL-03 поясніть різні правила для текстового вузла, 
+атрибута, URL і JavaScript; за власною інвентаризацією опишіть залишковий ризик third-party 
+scripts (або зафіксуйте, що в дослідженому flow їх немає).
+REG-CORS-01 складається з двох частин:
+1. Browser evidence: відтворіть стенд етапу 3 командами python3 -m http.server … на 
+macOS/Linux/Git Bash або py -3 -m http.server … у Windows: allowed probe працює на 
+http://localhost:4173, disallowed probe — на http://localhost:4174, а API — на 
+http://localhost:5080. Код сторінки на disallowed origin не отримує response, а Network 
+містить request до абсолютної API-адреси з очікуваним Origin. Якщо такого request немає, 
+це помилка топології стенда, а не доказ CORS.
+2. HTTP evidence: у Development fixed state для v0.5.0 прямий HTTP client перевіряє policy 
+Lab05BrowserProbe: для allowed origin Access-Control-Allow-Origin присутній і точно 
+дорівнює http://localhost:4173; для disallowed origin цей header відсутній. Водночас direct 
+client отримує HTTP response згідно з authentication/authorization API, що доводить: CORS не 
+зупиняє сам request.
+Запустіть API у Development з fixed commit, на який указуватиме v0.5.0, і виконайте:
+
+Лабораторна робота 05 · SecureLab
+Сторінка 55
+API_URL="http://localhost:5080/health"
+ALLOWED_ORIGIN="http://localhost:4173"
+DISALLOWED_ORIGIN="http://localhost:4174"
+curl -sS -D - -o /dev/null \
+  -H "Origin: ${ALLOWED_ORIGIN}" "${API_URL}"
+curl -sS -D - -o /dev/null \
+  -H "Origin: ${DISALLOWED_ORIGIN}" "${API_URL}"
+У Windows PowerShell викликайте саме curl.exe (ім’я curl у PowerShell 5.1 означає іншу 
+команду), без shell-змінних:
+curl.exe -sS -D - -o NUL `
+  -H "Origin: http://localhost:4173" "http://localhost:5080/health"
+curl.exe -sS -D - -o NUL `
+  -H "Origin: http://localhost:4174" "http://localhost:5080/health"
+Очікуваний результат: обидві відповіді мають HTTP/1.1 200 OK, X-Content-Type-Options: 
+nosniff і Referrer-Policy: no-referrer. Перша відповідь містить Access-Control-Allow-
+Origin: http://localhost:4173; для доброго/відмінного рівня, де в policy лишився 
+AllowCredentials(), також Access-Control-Allow-Credentials: true. У другій жодного Access-
+Control-* немає. Тому число різних рядків залежить від вашого рівня, а не є окремим 
+критерієм успіху. Статус 200 для недозволеного origin — не помилка policy: сервер запит 
+виконав, а читати відповідь заборонив би браузер.
+Збережіть повні response headers для обох запитів у доказах і порівняйте саме Access-
+Control-Allow-Origin; не підміняйте регресію пошуком рядка WithOrigins у source code. 
+Фіксований /health не потребує credentials; для інших сценаріїв використовуйте свою 
+задокументовану локальну процедуру входу. Не вставляйте cookie або token до команд, shell 
+history чи звіту.
+4. Виконайте підсумкову перевірку
+Перед фінальним commit повторіть:
+1. original XSS marker після fix;
+2. normal text із лапками, </>, Unicode та дозволеною довжиною;
+3. незмінність значення в БД та API response до й після виправлення sink;
+4. основне поле Incident.Description і, для доброго рівня, IncidentComment.Text;
+5. allowed origin, disallowed origin і direct HTTP scenario;
+6. Добре / Відмінно: основний client flow під enforcement CSP;
+7. Добре / Відмінно: actual headers і policy rationale; Відмінно: також докази обох режимів 
+CSP, DOM-тест, comments/повторний render, URL/атрибут і ризик third-party scripts;
+8. baseline і додані вами tests/commands.
+Зберігайте результат як доказ, а не як великий archive screenshots. Достатньо однієї стислої 
+таблиці «до → першопричина → fix → retest → residual risk» і посилань на точні source 
+files/commits. Не включайте password, cookie, token, повний export local storage або personal 
+data.
+Збережіть docs/browser-security-evidence.md під цією назвою: він знадобиться як джерело 
+доказів під час підсумкового огляду захищеності.
+5. Збережіть канонічний стан у Git
+Перевірте, що history відрізняє стан «до» від fixed state:
+
+Лабораторна робота 05 · SecureLab
+Сторінка 56
+git status
+git log --oneline --decorate -n 10
+git diff VULNERABLE_COMMIT..FIXED_COMMIT
+git tag -a v0.5.0 -m "Lab 5 browser security verified"
+git show v0.5.0 --stat
+Замініть VULNERABLE_COMMIT і FIXED_COMMIT на зафіксовані hashes. Створюйте v0.5.0 тільки 
+після фактичного retest. Fixed commit і тег мають містити визначений в етапі 3 кінцевий стан: 
+exact-allowlist policy Lab05BrowserProbe для http://localhost:4173, зареєстровану й 
+застосовану лише в Development; http://localhost:4174 не дозволяється, а в Production 
+навчальна policy відсутня. Tag не замінює evidence і не має вказувати на commit із 
+незавершеним CORS/CSP experiment.
+Перенесіть fixed state до локальної main. Перед командами переконайтеся, що робоче дерево 
+чисте; тег уже створений після перевірки. Якщо є погоджений приватний remote, спершу 
+перевірте git remote -v, доступ викладача й правила main; синхронізуйте локальну main 
+командами git switch main і git pull --ff-only, потім виконайте merge нижче:
+git switch main
+git merge --ff-only lab/5-browser-xss
+git show --no-patch v0.5.0
+Очікування: fast-forward, а main, робоча гілка та v0.5.0 указують на перевірений fixed commit. 
+Якщо main містить інші коміти й fast-forward неможливий, збережіть git status/log і узгодьте 
+merge за правилами курсу, без reset --hard/push --force.
+DEL-02 можна передати двома способами. Якщо вже є погоджений приватний remote, після 
+описаної вище синхронізації й merge передайте гілку, тег і дозволений main:
+git push -u origin lab/5-browser-xss
+git push origin v0.5.0
+git push origin main
+Якщо main захищена, передайте гілку/тег і pull request за правилами курсу. Якщо remote немає 
+чи він недоступний, створіть bundle існуючого DEL-02:
+git bundle create lab05.bundle main lab/5-browser-xss v0.5.0
+git bundle verify lab05.bundle
+git bundle list-heads lab05.bundle
+Очікування: bundle verified та три refs з fixed hash. Для незалежної перевірки клонуйте в новий 
+відсутній каталог:
+git clone lab05.bundle "BUNDLE_CHECK_DIRECTORY"
+git -C "BUNDLE_CHECK_DIRECTORY" show --no-patch v0.5.0
+Замініть BUNDLE_CHECK_DIRECTORY на власний шлях нового каталогу, зберігаючи лапки. 
+Подайте lab05.bundle у Moodle замість remote-посилання та вкажіть hashes у звіті; окремого 
+четвертого артефакту немає. Перед ЛР 6 локальна main має містити fixed state ЛР 5.
+5. Індивідуалізація
+Індивідуальні варіанти не передбачені
+Усі студенти працюють з одним спільним набором параметрів канонічного baseline 2-A, 
+зафіксованим в опублікованій картці variant-02-a.md (resources/starter-project/docs/variant-02-a.md):
+• основне текстове поле обов’язкового потоку — Incident.Description;
+• друге поле для доброго рівня — IncidentComment.Text;
+• привілейований глядач — Morgan із роллю Analyst;
+
+Лабораторна робота 05 · SecureLab
+Сторінка 57
+• formatted HTML у Description та IncidentComment.Text не дозволено: обидва значення є 
+звичайним текстом, а HTML-like string потрібно показувати як текст без sanitizer і rich-text 
+editor.
+Harmless marker у разі виконання встановлює data-lab05-marker="executed" лише на #lab05-
+marker-target; він не виконує зовнішніх запитів і не читає credentials. Локальну процедуру 
+входу Alice та Morgan, команду reset і конкретні маршрути студент документує у власних 
+доказах. Це не змінює наведені вище поля, роль або заборону formatted HTML.
+Для всіх незмінними лишаються API origin http://localhost:5080, дозволений навчальний 
+probe http://localhost:4173, недозволений контрольний probe http://localhost:4174 і 
+команди запуску probes, наведені у практичному завданні.
+Канонічний вхід: власний v0.4.0 плюс scaffold lab-05-start-v1 (див. Додаток А). Його release 
+ID, base commit і фактичну перевірку запуску вкажіть у доказах. Необхідні теоретичні пояснення 
+наведено в цій методичці.
+6. Подання та захист
+Організаційні умови та використання ШІ
+Готові файли подавайте в завдання відповідної лабораторної роботи в Moodle. Усі виконують 
+спільний сценарій 2-A з розділу спільних параметрів; нового номера варіанта немає. Порядок 
+дистанційного захисту погоджено зі студентами окремо; наведені нижче питання й короткі зміни 
+допомагають підготуватися до нього.
+Дозволені всі сервіси генеративного ШІ. Правило курсу: «обмежено дозволене (з обов’язковою 
+авторською адаптацією та інтерпретацією) використання генеративного штучного інтелекту.» 
+Назву сервісу окремо погоджувати не потрібно. Перевіряйте згенеровані твердження й код, 
+адаптуйте їх до свого завдання, пояснюйте власні рішення та вказуйте використання ШІ у звіті; 
+заповніть декларацію ШІ в каркасі DEL-03. Окремого нового журналу не потрібно. Якщо ШІ не 
+використовували, так і зазначте.
+Артефакти подання
+Повні критерії оцінювання та обсяг кожного рівня — на початку практичної частини. 
+DEL-01/02/03 подають усі; доповнення старших рівнів додавайте до цих самих артефактів.
+Артефакт DEL-01: доказовий комплект безпеки браузера
+Подайте заповнену карту source-to-sink для основного поля Incident.Description, безпечний 
+local marker у визначених межах, DB/API/DOM evidence, finding із першопричиною, safe DOM diff 
+і результати повторної перевірки. Для доброго рівня додайте перевірку IncidentComment.Text; 
+в обох полях HTML-like string має лишатися текстом. Комплект має містити REG-XSS-01, REG-
+CORS-01 та не містити passwords, cookies, tokens, повного export local storage або зайвих 
+персональних даних.
+Артефакт DEL-02: перевірений Git-стан
+Подайте vulnerable і fixed commit hashes, тег v0.5.0, а також доказ передавання перевіреного 
+fixed state до main за правилами курсу.
+Артефакт DEL-03: матеріали для захисту
+Скопіюйте каркас звіту (resources/templates/report.md); підготуйте короткий звіт, контрольні відповіді й 
+можливість виконати live modification у межах роботи.
+
+Лабораторна робота 05 · SecureLab
+Сторінка 58
+Мінімальні артефакти звіту і захисту
+Подайте або покажіть формат, визначений викладачем, із такими мінімальними артефактами:
+• harmless marker, local scope та vulnerable commit hash;
+• точна першопричина і safe DOM diff;
+• result того самого marker після fix та positive regression;
+• actual CORS evidence для allowed/disallowed browser origin і direct HTTP client;
+• fixed commit hash, v0.5.0 і доказ передавання fixed state до main;
+• Добре / Відмінно: коментар, helper, preflight, cookie-дослід, CSP/header evidence, policy 
+rationale і письмовий review;
+• Відмінно: DOM-тест, обидва режими CSP, comments/повторний render, контексти виведення 
+й залишковий ризик third-party scripts. Залишковий ризик власного finding описують усі.
+На захисті будьте готові виконати одну коротку live modification відповідно до виконаного рівня. 
+Для всіх — source/sink основного Description, safe DOM або межа backend validation; для 
+«Добре / Відмінно» також можливі такі зміни: безпечно показати IncidentComment.Text через 
+DOM API; назвати source та sink указаного значення; пояснити конкретний preflight; додати 
+second exact development origin; або пояснити, чому backend validation не відновлює unsafe 
+browser sink.
+Контрольні питання
+Для «Задовільно» питання 8, 13 і 14 стосуються теорії: пояснюйте їх своїми словами, практичні 
+докази preflight, CSP і headers потрібні з рівня «Добре».
+1. Чому value з БД може залишатися недовіреним?
+2. Що таке source, transformation і sink у вашому flow?
+3. Чим stored XSS відрізняється від reflected та DOM-based XSS?
+4. Чому блокування <script> не усуває XSS?
+5. Коли обирають textContent, а коли потрібен sanitizer?
+6. Чому sanitizer не пишуть regular expression?
+7. З яких трьох компонентів складається origin?
+8. Що browser надсилає в CORS preflight і хто його ініціює?
+9. Хто оголошує CORS-політику і хто її застосовує? Що з цього робить API, а що — браузер?
+10. Чому curl може прочитати API response, коли browser script отримує CORS error?
+11. Чому CORS не є authorization і не замінює CSRF-захист?
+12. Чому wildcard origin не поєднують із credentials?
+13. Яку межу має CSP і чому вона не замінює safe DOM rendering?
+14. Який risk зменшують nosniff, Referrer-Policy і frame-ancestors?
+Чекліст перед поданням
+Для всіх рівнів
+• [ ] У fixed browser-lab.js ні опис, ні тексти коментарів не передаються в innerHTML.
+• [ ] Файл карти містить complete source-to-sink flow, а не лише список innerHTML.
+
+Лабораторна робота 05 · SecureLab
+Сторінка 59
+• [ ] Marker був застосований тільки локально, не виконував external request і не читав 
+credentials.
+• [ ] Vulnerable та fixed states мають різні commit hashes.
+• [ ] Safe fix не є blacklist/regular expression для одного payload.
+• [ ] Значення в БД та API response після fix не змінено; виправлено sink, а не вхід.
+• [ ] Original marker після fix не виконується, а legitimate complex text відображається правильно.
+• [ ] CORS перевірено браузером з двох origins і direct HTTP client.
+• [ ] REG-CORS-01 містить browser evidence та порівняння actual response headers для 
+allowed/disallowed origins.
+• [ ] Для всіх: пояснено browser/direct HTTP і незалежність authentication/authorization від 
+CORS; CSP не підміняє safe sink.
+• [ ] У звіті немає secrets, cookie, tokens або зайвих персональних даних.
+• [ ] REG-XSS-01 повторюваний, а v0.5.0 вказує на перевірений fixed commit.
+• [ ] Гілку, main і v0.5.0 передано через погоджений приватний remote або перевірений bundle; 
+main містить fixed state ЛР 5.
+Додатково для Добре та Відмінно
+• [ ] Перевірено IncidentComment.Text і другий flow карти; обидва поля відображає єдиний safe 
+helper.
+• [ ] Збережено preflight з обох origins і cookie-дослід; AllowCredentials() лишився лише в 
+Development policy для 4173.
+• [ ] Базова CSP у enforcement не має невиправданого unsafe-inline; основний flow працює; 
+nosniff, Referrer-Policy і frame-ancestors перевірено та обґрунтовано.
+• [ ] DEL-03 містить короткий review, який розрізняє XSS, CORS, CSRF і authorization.
+Додатково для Відмінно
+• [ ] DOM-тест дав FAIL на vulnerable і PASS на fixed; записано команду/файл, commits і 
+браузер.
+• [ ] Збережено докази report-only, потім enforcement; поглиблено перевірено comments, 
+повторний render і позитивні рядки.
+• [ ] Перевірено safe-url.js; пояснено контексти text/attribute/URL/JavaScript і ризик third-party 
+scripts.
+Як прикріпити DEL у Moodle
+DEL-01: docs/source-to-sink.md, docs/browser-security-evidence.md та мінімальні файли 
+доказів за посиланнями. DEL-02: доступне приватне Git-посилання або lab05.bundle, hashes 
+станів до/після та тег. DEL-03: короткий звіт із декларацією ШІ й відповідями. Прикріпіть у 
+завдання WEB ЛР 5, відкрийте прикріплені матеріали й перевірте підтвердження надсилання. 
+Якщо формат Moodle обмежує кількість файлів, об’єднайте документи DEL-01/03 в один PDF 
+або ZIP зі зрозумілим покажчиком; Git-історію збережіть bundle. Формат об’єднання не змінює 
+зміст DEL. Навчальні файли з resources не треба здавати окремо.
+7. Додаток А. Стартові стани та встановлення scaffold
+Ви продовжуєте власний завершений v0.4.0. У цьому комплекті лише lab-05-scaffold.zip; у 
+його manifest немає інших номерів робіт. Release ID — lab-05-start-v1. Пакет додає browser-
+
+Лабораторна робота 05 · SecureLab
+Сторінка 60
+lab.html, browser-lab.js і probes для двох origin. Він не містить готового safe-rendering fix або 
+налаштованої CORS policy; наявна авторизація ЛР 4 має працювати.
+Розпакуйте scaffold поза Git-каталогом проєкту. Перейдіть до каталогу з install.py; 
+PROJECT_DIRECTORY замініть абсолютним шляхом, зберігаючи подвійні лапки; останній 
+аргумент є шляхом до власного проєкту з global.json.
+python3 install.py 05 "PROJECT_DIRECTORY"
+python3 install.py 05 "PROJECT_DIRECTORY" --write
+У Windows використовуйте py -3 замість python3; шлях із пробілами беріть у подвійні лапки. 
+Перший запуск лише показує план. Після запису перегляньте git diff і квитанцію 
+.scaffolds/lab-05.json; збережіть потрібні файли окремим commit. Перевірки build, reset і test 
+виконайте за стартовим етапом практичної частини цієї методички.
+Installer перевіряє чисте робоче дерево, походження від v0.4.0, SHA-256 виданих файлів, 
+integration anchors і конфлікти до початку запису. Лише різниця CRLF/LF не є зміною змісту. 
+Повторне встановлення поверх власних виправлень заборонене. Якщо змінено зміст baseline-
+файла, збережіть diff і порівняйте саме цей файл за діагностикою методички; не 
+використовуйте reset --hard і не перезаписуйте весь проєкт.
+Розширений довідник README.md, manifest.json і install.py містяться всередині ZIP. Пакет 
+дає інфраструктуру навчального локального стенда; індивідуальні докази, виправлення й 
+регресію виконуєте ви.
+Канонічний harmless marker ЛР 05
+Копіюйте лише з однорядкового resources/lab05-marker.txt у виданому комплекті або 
+розпакованому ZIP. Нижче — вигляд для читання: переноси у PDF не є частиною marker і цей 
+блок не використовуйте для копіювання. Він лише встановлює атрибут на власній локальній 
+сторінці.
+<img src=x onerror="document.querySelector('#lab05-marker-target').setAttribute('data-
+lab05-marker','executed')">
+Очікувана дія у вразливому render: #lab05-marker-target має атрибут data-lab05-
+marker="executed". Перед повтором оновіть сторінку, щоб прибрати попередній атрибут. 
+Перевірку виконуйте лише на власному loopback-стенді зі штучними даними.
+SDK у власному накопичуваному проєкті
+Політику SDK, обидві перевірки (dotnet --list-sdks поза проєктом і dotnet --version у 
+корені) та порядок оновлення старого global.json наведено в практичній частині: Етап 1, крок 
+1.2. Якщо CLI працює, а IDE не бачить SDK, див. блок «Робоче середовище» того самого 
+етапу. Scaffold не постачає та не переписує global.json власного проєкту. Оновіть старий 
+файл після створення гілки цієї ЛР, до пробного запуску installer: installer перевіряє чисте 
+робоче дерево. Окремий resources/student-scaffolds/README-lab05.md зберігає повну 
+інструкцію для читання без PDF.
+8. Додаток Б. Предметний контракт baseline 2-A
+Предметна область
+Навчальний трекер кібербезпекових інцидентів. Reporter створює повідомлення, Analyst 
+класифікує його та змінює стан, Administrator виконує лише окремо визначені адміністративні 
+операції.
+
+Лабораторна робота 05 · SecureLab
+Сторінка 61
+Дані
+• основний owned resource — Incident;
+• пов'язані сутності — IncidentComment, IncidentStatusHistory;
+• власник — Incident.OwnerUserId;
+• текстові поля — Title, Description, IncidentComment.Text;
+• workflow — New → Triaged → InProgress → Resolved → Closed;
+• навчальні користувачі — Alice, Bob, Morgan (Analyst), Admin;
+• відтворювані UUID Alice/Bob та їхніх інцидентів визначені у DbSeeder.
+Профіль A «Пошук»
+ЛР
+Точка розвитку
+1
+Підсумок за severity; готовий фільтр за status є близьким прикладом
+2
+Пошук у title/description, параметризація значень і allowlist сортування
+3
+Сервер призначає власника інциденту з principal
+4
+Горизонтальний IDOR читання/зміни чужого інциденту; вертикальна зміна 
+severity/status
+5
+Stored XSS у description/comment; безпечний list/details render
+6
+Rate limit створення/пошуку, аудит залежностей і мінімізація журналів
+Навмисно вразливі стани ЛР 2 та ЛР 5 постачають відповідні scaffold ZIP поверх власного 
+завершеного попереднього тегу. ЛР 4 продовжує власний v0.3.0; контрольовану перевірку 
+виконуйте за її методичкою. Не створюйте нові вразливості для ЛР 5: browser-lab.js уже має 
+два навчальні sinks. Власні попередні виправлення зберігаються.
+Канонічний create JSON: title,description,severity,occurredAtUtc. Severity — рядок 
+Low/Medium/High/Critical; OccurredAtUtc — nullable DateTimeOffset на вході, обов’язковість 
+перевіряє validation, перед збереженням UTC. Id/OwnerUserId серверні.
+
+Лабораторна робота 05 · SecureLab
+Сторінка 62
+Розташування файлів і супровідних інструкцій
+Шляхи, що починаються з resources/, належать до комплекту цієї методички: відкривайте їх 
+поруч із PDF та Word. Інші шляхи належать до наданих архівів або власного проєкту. 
+Відкривайте їх після розпакування; команди проєкту виконуйте з каталогу з global.json. Код, 
+команди й формули копіюйте з готових файлів: візуальний перенос у PDF не визначає 
+синтаксис рядка.
+Шлях у комплекті
+Для чого потрібний
+Коли відкрити
+resources/copyable/README.md
+Довідник навігації та передумов 
+ресурсного комплекту.
+Етап 1: підготовка й карта 
+потоку
+resources/copyable/commands.md
+Покажчик усіх командних і Console/C# 
+блоків методички.
+Етап 1: підготовка й карта 
+потоку
+resources/copyable/comment-seed.cs
+Константа marker і initializer коментаря 
+всередині DbSeeder.SeedAsync; добрий 
+рівень.
+Етап 2: PoC і safe DOM
+resources/copyable/csp-headers.cs
+Фрагмент зміни наявної middleware 
+заголовків; добрий/відмінний рівень.
+Етап 4: регресія, CSP і 
+подання
+resources/copyable/description-dom.js
+Автоматична перевірка фактичного 
+DOM опису в Console; відмінний рівень.
+Етап 4: регресія, CSP і 
+подання
+resources/copyable/safe-url.js
+Нейтральна перевірка URL protocol/href 
+без переходу за адресою.
+Етап 2, крок 4 (контекст 
+URL) і Етап 4, крок 3; 
+відмінний рівень
+resources/examples/title-source-to-sink.md
+Заповнений безпечний приклад іншого 
+поля Title; орієнтир структури карти.
+Етап 1: підготовка й карта 
+потоку
+resources/lab05-marker.txt
+Єдине джерело однорядкового 
+нешкідливого marker для копіювання.
+Етап 2: PoC і safe DOM
+resources/screenshots/
+PNG рисунків методички; дивіться їх 
+біля дослідів у PDF.
+Практична частина
+resources/templates/browser-security-
+evidence.md
+Каркас наявних доказів до/після та REG-
+XSS/CORS.
+Етап 1: підготовка й карта 
+потоку
+resources/templates/report.md
+Каркас DEL-03 з декларацією ШІ.
+Етап 4: регресія, CSP і 
+подання
+resources/templates/source-to-sink.md
+Каркас власної карти потоку для DEL-01.
+Етап 1: підготовка й карта 
+потоку
+

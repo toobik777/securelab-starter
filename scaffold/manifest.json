@@ -1,0 +1,18 @@
+{
+  "audience": "student",
+  "labs": {
+    "05": {
+      "files": {
+        "demonstrations/cors-probe/index.html": "a4a7e4e0d0d70b018c6ce6b0c008a7e7800cf8af007a8942550a6482f39cbb42",
+        "demonstrations/cors-probe/probe.js": "2c718df73f41221544242b53d9a2b6b13dd56bb22588a955fb0df99673115357",
+        "src/SecureLab.Api/Client/browser-lab.html": "d6d0c546f1dfc372e160fa28390976e93d67cae29296d8278d51399c35100570",
+        "src/SecureLab.Api/Client/browser-lab.js": "04d9e0c572df239889a011968be7cf0eb5b76a6ab5d7b25669c27ae87a25f145"
+      },
+      "inherits": "v0.4.0",
+      "release": "lab-05-start-v1",
+      "replace_baseline_sha256": {}
+    }
+  },
+  "model": "own previous completion + supplied scaffold",
+  "schema_version": 1
+}

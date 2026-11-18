@@ -82,10 +82,10 @@ public sealed class IncidentQueries(SecureLabDbContext dbContext, ILogger<Incide
         logger.LogInformation("Loading incident {IncidentId}", id);
 
         // Query scoping details: умова за суб'єктом стоїть у самому запиті, окремо від handler.
-        // MUTANT (стан "до"): owner-only, роль Analyst (canSeeAll) тут НЕ враховано.
+        // Власник або Analyst (canSeeAll); admin без додаткового права не читає чужі записи.
         return dbContext.Incidents
             .AsNoTracking()
-            .Where(incident => incident.Id == id && incident.OwnerUserId == userId)
+            .Where(incident => incident.Id == id && (canSeeAll || incident.OwnerUserId == userId))
             .Select(incident => new IncidentDetailsResponse(
                 incident.Id,
                 incident.Title,
