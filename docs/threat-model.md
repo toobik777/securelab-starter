@@ -1,6 +1,6 @@
 # Модель загроз SecureLab, ЛР 6
 
-Рівень огляду: **відмінний («Відмінно»)** (накопичувальний). Предметний baseline: 2-A, ресурс `Incident`.
+Рівень огляду: **добрий («Добре»)** (накопичувальний). Предметний baseline: 2-A, ресурс `Incident`.
 
 | Елемент | Що зафіксувати | Запис |
 |---|---|---|
@@ -42,7 +42,7 @@ environment variables ──TB4──► API startup (Development vs Production-
 | TB3 repository→build | tracked files без реальних credentials; restore не змінює lockfile непомітно | `git grep` (розділ 9 review); `dotnet restore --locked-mode`; `dotnet package list --vulnerable` |
 | TB4 environment→configuration | у Production не діє Development-конфігурація; reset заборонено; OpenAPI/CORS не реєструються | `Lab06SecurityTests.Production_*`, консольний доказ `Hosting environment: Production` |
 
-## Ланцюжок asset → threat → control → verification (відмінний рівень)
+## Ланцюжок asset → threat → control → verification (додатково до доброго)
 
 | Актив | Загроза | Control | Перевірка |
 |---|---|---|---|
