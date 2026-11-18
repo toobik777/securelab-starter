@@ -16,7 +16,7 @@ Starter навмисно не містить завершених рішень �
 
 ## 1. Передумови
 
-- .NET SDK `10.0.302` (зафіксовано у `global.json`);
+- .NET SDK 10.0.* (стабільна, `global.json`: нижня межа `10.0.100`, `rollForward: latestFeature`);
 - Docker із підтримкою `docker compose`;
 - Git;
 - вільні локальні порти `5080` і `54329`.
@@ -136,3 +136,25 @@ docs/                    карта архітектури, варіант, ма
 
 Перед commit перегляньте `git status`, `git diff --staged` і переконайтеся, що
 до Git не потрапили `.env`, cookies, tokens, реальні passwords, dumps або logs.
+
+## 8. ЛР 6: перевірка, production-like запуск і security review
+
+Prerequisites: PostgreSQL (`docker compose ... up -d --wait`), `SeedUsers__Password` поза Git (локальний навчальний пароль).
+
+```bash
+dotnet run --project src/SecureLab.Api -- --reset-database   # лише Development
+dotnet test SecureLab.sln -c Release                         # regression pack: 69 тестів
+dotnet run --project src/SecureLab.Api                       # Development, http://localhost:5080
+```
+
+Production-like запуск (без launch profile; connection string поза Git):
+
+```powershell
+$env:ASPNETCORE_ENVIRONMENT = "Production"; $env:ASPNETCORE_URLS = "http://localhost:5080"
+$env:ConnectionStrings__SecureLab = "<ваш connection string>"; $env:Logging__Console__IncludeScopes = "true"
+dotnet run --project src/SecureLab.Api --no-launch-profile -c Release
+```
+
+Змінювальні запити cookie-сеансу потребують antiforgery-токена: `GET /api/auth/csrf-token` після login → header `X-CSRF-TOKEN`
+(див. `Client/csrf.js`, `scripts/lr06/lab06_probe.py csrf`). Документи огляду: `docs/threat-model.md`, `docs/security-review.md`, `docs/findings/`.
+

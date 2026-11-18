@@ -4,6 +4,7 @@ using Scalar.AspNetCore;
 using SecureLab.Api.Application.Incidents;
 using SecureLab.Api.Data;
 using SecureLab.Api.Presentation.Endpoints;
+using SecureLab.Api.Security;
 
 var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 {
@@ -24,6 +25,7 @@ builder.Services.AddScoped<Microsoft.AspNetCore.Authorization.IAuthorizationHand
 
 builder.AddLab03Identity();
 builder.AddLab03RateLimiting();
+builder.AddLab06Antiforgery();
 
 // ЛР 5: навчальна CORS policy лише для Development. Штатний клієнт і API мають один origin (http://localhost:5080),
 // тому CORS у цій топології не потрібен. Дозволено ТІЛЬКИ probe http://localhost:4173 (без AllowAnyOrigin,
@@ -52,30 +54,46 @@ if (resetRequested)
     return;
 }
 
-app.UseExceptionHandler();
-app.UseStatusCodePages();
-
-// ЛР 5: CSP як defense in depth (НЕ замінює safe DOM rendering). Політику складено з фактичних ресурсів клієнта:
-// власні /app.js, /auth-lab.js, /browser-lab.js, власні CSS, same-origin fetch до API; inline-скриптів і inline-стилів немає
-// (inline <style> сторінки auth-lab.html винесено в auth-lab.css), тому 'unsafe-inline' не потрібен.
+// ЛР 6 (F-01): заголовки безпеки виставляються в OnStarting у найзовнішньому middleware, ДО UseExceptionHandler.
+// ExceptionHandlerMiddleware очищає заголовки відповіді перед записом 500; callback, зареєстрований раніше,
+// спрацьовує під час фактичного початку відповіді, тому заголовки є й на error path.
+// CSP (ЛР 5) — defense in depth, НЕ замінює safe DOM rendering. Політику складено з фактичних ресурсів клієнта:
+// власні /app.js, /auth-lab.js, /browser-lab.js, /csrf.js, власні CSS, same-origin fetch; inline-скриптів і стилів немає.
 const string contentSecurityPolicy =
     "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; "
     + "object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'";
-const string cspHeaderName = "Content-Security-Policy";
 
-app.Use(async (context, next) =>
+app.Use((context, next) =>
 {
-    context.Response.Headers.XContentTypeOptions = "nosniff";
-    context.Response.Headers.Append("Referrer-Policy", "no-referrer");
-    // Development-довідник /scalar використовує сторонній UI-пакет з власними ресурсами: виняток лише тут і лише в Development.
-    var isDevelopmentApiReference =
-        app.Environment.IsDevelopment() && context.Request.Path.StartsWithSegments("/scalar");
-    if (!isDevelopmentApiReference)
+    context.Response.OnStarting(state =>
     {
-        context.Response.Headers[cspHeaderName] = contentSecurityPolicy;
-    }
-    await next(context);
+        var httpContext = (HttpContext)state;
+        var headers = httpContext.Response.Headers;
+        headers.XContentTypeOptions = "nosniff";
+        headers["Referrer-Policy"] = "no-referrer";
+        headers["X-Frame-Options"] = "DENY";
+        // Development-довідник /scalar використовує сторонній UI-пакет з власними ресурсами: виняток лише тут і лише в Development.
+        var isDevelopmentApiReference =
+            httpContext.RequestServices.GetRequiredService<IHostEnvironment>().IsDevelopment()
+            && httpContext.Request.Path.StartsWithSegments("/scalar");
+        if (!isDevelopmentApiReference)
+        {
+            headers["Content-Security-Policy"] = contentSecurityPolicy;
+        }
+
+        // ЛР 6 (F-03): відповіді API містять дані автентифікованого користувача — не кешувати (browser/shared cache).
+        if (httpContext.Request.Path.StartsWithSegments("/api"))
+        {
+            headers.CacheControl = "no-store";
+        }
+
+        return Task.CompletedTask;
+    }, context);
+    return next(context);
 });
+
+app.UseExceptionHandler();
+app.UseStatusCodePages();
 
 if (app.Environment.IsDevelopment())
 {
@@ -91,8 +109,10 @@ if (app.Environment.IsDevelopment())
     app.UseCors("Lab05BrowserProbe");
 }
 
-app.UseRateLimiter();
+// ЛР 6: limiter стоїть після authentication, щоб search-policy розділяла partitions за автентифікованим користувачем;
+// login-policy далі розділяє за адресою клієнта (body ще не прочитано).
 app.UseAuthentication();
+app.UseRateLimiter();
 app.UseAuthorization();
 
 app.UseDefaultFiles();
@@ -111,6 +131,10 @@ app.MapGet("/health", async (SecureLabDbContext dbContext, CancellationToken can
 app.MapIncidentEndpoints();
 app.MapLab03Identity();
 app.MapLab02Endpoints();
+app.MapLab06Antiforgery();
+// ЛР 6 (F-03): невідомий API-шлях — це 404 Problem Details, а не SPA-fallback (200 text/html).
+app.MapFallback("/api/{**path}", () => Results.Problem(
+    title: "Ресурс не знайдено", statusCode: StatusCodes.Status404NotFound));
 app.MapFallbackToFile("index.html");
 
 app.Run();

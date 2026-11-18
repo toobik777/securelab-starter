@@ -12,6 +12,7 @@ public sealed class SecureLabApiFactory : WebApplicationFactory<Program>
         // Звичайні тести не мають впиратися в обмеження входів; окремі сценарії 429 задають малі ліміти.
         builder.UseSetting("Lab03:Login:PermitLimit", "10000");
         builder.UseSetting("Lab03:Register:PermitLimit", "10000");
+        builder.UseSetting("Lab06:Search:PermitLimit", "10000");
         builder.ConfigureLogging(logging => logging.AddProvider(CapturedLogs.Provider));
     }
 }

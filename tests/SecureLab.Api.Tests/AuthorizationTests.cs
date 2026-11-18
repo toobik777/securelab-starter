@@ -18,7 +18,7 @@ public sealed class AuthorizationTests(SecureLabApiFactory factory, Xunit.Abstra
 
     // ------------------------------------------------------------------ допоміжні методи
 
-    private Task<HttpClient> As(string userName) => factory.LoginAsync(userName, TestPasswords.Seed);
+    private Task<HttpClient> As(string userName) => factory.LoginWithTokenAsync(userName, TestPasswords.Seed);
 
     private async Task<Guid> CreateAsync(HttpClient client, string label)
     {

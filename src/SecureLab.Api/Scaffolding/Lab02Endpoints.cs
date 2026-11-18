@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using SecureLab.Api.Application.Incidents;
 using SecureLab.Api.Data;
 using SecureLab.Api.Data.Entities;
+using SecureLab.Api.Security;
 
 namespace SecureLab.Api.Scaffolding;
 
@@ -18,6 +19,15 @@ public static class Lab02Endpoints
             if (!IncidentAccess.TryGetUserId(httpContext.User, out var searcherId))
             {
                 return Results.Challenge();
+            }
+
+            // ЛР 6 (F-06): недопустиме sortBy — очікувана помилка валідації (400), а не необроблений виняток (500).
+            if (sortBy is not (null or "" or "createdAtUtc" or "severity" or "status"))
+            {
+                return Results.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    ["sortBy"] = ["Допустимі значення: createdAtUtc, severity, status."]
+                });
             }
 
             var canSeeAll = IncidentAccess.CanSeeAll(httpContext.User);
@@ -53,7 +63,7 @@ public static class Lab02Endpoints
                                   i.Status == IncidentStatus.Resolved ? 3 : 4)
                     .ThenBy(i => i.Id),
 
-                _ => throw new BadHttpRequestException("Invalid sortBy parameter.", statusCode: StatusCodes.Status400BadRequest)
+                _ => query // недосяжно: allowlist перевірено вище (F-06)
             };
 
             // 3. Обмеження вибірки (Take 50) після сортування та матеріалізація
@@ -70,7 +80,7 @@ public static class Lab02Endpoints
             ));
 
             return Results.Ok(response);
-        }).RequireAuthorization();
+        }).RequireAuthorization().RequireRateLimiting(Lab03Security.SearchPolicy);
 
         app.MapPost("/api/incidents", async (CreateIncidentRequest request, HttpContext httpContext, SecureLabDbContext db, CancellationToken ct) =>
         {
@@ -187,7 +197,7 @@ public static class Lab02Endpoints
                 $"/api/incidents/{incident.Id}", 
                 new CreatedIncidentResponse(incident.Id, incident.Title)
             );
-        }).RequireAuthorization();
+        }).RequireAuthorization().RequireAntiforgery();
     }
 
     /// <summary>

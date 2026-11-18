@@ -75,6 +75,14 @@ public static partial class AuthorizationAudit
     public static partial void Denied(
         ILogger logger, Guid subject, string action, string resource, DateTimeOffset occurredAtUtc, string traceId);
 
+    // ЛР 6 (F-04): audit trail privileged transition має містити й ДОЗВОЛЕНУ дію (subject, action, resource, result, time),
+    // а не лише відмову. Поля — структуровані; пароль, cookie, token і тіло запиту не потрапляють.
+    [LoggerMessage(EventId = 4002, Level = LogLevel.Information,
+        Message = "authorization.allowed subject={Subject} action={Action} resource={Resource} result=allowed from={From} to={To} occurredAtUtc={OccurredAtUtc:O} traceId={TraceId}")]
+    public static partial void Allowed(
+        ILogger logger, Guid subject, string action, string resource, string from, string to,
+        DateTimeOffset occurredAtUtc, string traceId);
+
     public static string TraceId(HttpContext httpContext) =>
         Activity.Current?.Id ?? httpContext.TraceIdentifier;
 }

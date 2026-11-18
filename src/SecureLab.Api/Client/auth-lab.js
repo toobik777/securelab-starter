@@ -12,6 +12,11 @@ function apiFetch(path, options = {}) {
   return fetch(url, { ...options, credentials: "same-origin" });
 }
 
+// Змінювальні запити cookie-сеансу йдуть через csrfFetch (header X-CSRF-TOKEN, csrf.js); login/register — без нього (окреме рішення scope).
+function postCsrfJson(path, body) {
+  return csrfFetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+}
+
 function postJson(path, body) {
   return apiFetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 }
@@ -79,6 +84,7 @@ document.querySelector("#login").addEventListener("submit", async event => {
   const form = event.currentTarget;
   const response = await postJson("/api/auth/login", Object.fromEntries(new FormData(form)));
   form.elements.password.value = "";
+  clearCsrfToken(); // новий principal => новий токен при наступній mutation
   result.textContent = `Login: ${response.status}`;
   await refreshSessionState();
 });
@@ -98,7 +104,7 @@ document.querySelector("#incident").addEventListener("submit", async event => {
     severity: data.severity,
     occurredAtUtc: new Date(data.occurredAt).toISOString()
   };
-  const response = await postJson("/api/incidents", body);
+  const response = await postCsrfJson("/api/incidents", body);
   if (response.status === 201) {
     const incident = await response.json();
     created.textContent = `201 Created\nid: ${incident.id}\ntitle: ${incident.title}`;
@@ -109,7 +115,8 @@ document.querySelector("#incident").addEventListener("submit", async event => {
 });
 
 document.querySelector("#logout").addEventListener("click", async () => {
-  const response = await postJson("/api/auth/logout", {});
+  const response = await postCsrfJson("/api/auth/logout", {});
+  clearCsrfToken(); // токен належав завершеному сеансу
   clearUserView();
   result.textContent = `Logout: ${response.status}`;
   // Очищення UI не замінює sign-out: повторний запит до /api/me має дати 401.
