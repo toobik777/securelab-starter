@@ -312,10 +312,14 @@ public static class IncidentEndpoints
             Note = "Первинна оцінка (triage).",
             CreatedAtUtc = now
         });
+        var previousStatus = incident.Status;
         incident.Status = IncidentStatus.Triaged; // next status визначає сервер, не клієнт
         incident.UpdatedAtUtc = now;
 
         await db.SaveChangesAsync(cancellationToken);
+        AuthorizationAudit.Allowed(
+            logger, analystId, "incident.triage", $"incident:{incident.Id}",
+            previousStatus.ToString(), incident.Status.ToString(), now, AuthorizationAudit.TraceId(httpContext));
         return Results.Ok(new IncidentTransitionResponse(incident.Id, incident.Status.ToString()));
     }
 

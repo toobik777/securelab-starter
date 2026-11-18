@@ -280,6 +280,50 @@ public sealed class Lab06SecurityTests(SecureLabApiFactory factory, Xunit.Abstra
         Assert.Equal(HttpStatusCode.OK, devOpenApi.StatusCode);
     }
 
+    // ------------------------------------------------------------------ audit trail та Host filtering
+
+    [Fact]
+    public async Task Audit_AllowedPrivilegedTransition_IsRecorded_WithoutSecrets()
+    {
+        using var alice = await factory.LoginWithTokenAsync("alice", TestPasswords.Seed);
+        using var morgan = await factory.LoginWithTokenAsync("morgan", TestPasswords.Seed);
+        var id = await CreateAsync(alice, "AUDIT-allowed");
+        try
+        {
+            using var response = await morgan.PostAsync($"/api/incidents/{id}/triage", null);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+            var line = Assert.Single(CapturedLogs.Snapshot(), entry =>
+                entry.StartsWith("authorization.allowed", StringComparison.Ordinal)
+                && entry.Contains(id.ToString(), StringComparison.Ordinal));
+            output.WriteLine(line);
+            Assert.Contains($"subject={DbSeeder.MorganId}", line);
+            Assert.Contains("action=incident.triage", line);
+            Assert.Contains("result=allowed", line);
+            Assert.Contains("from=New to=Triaged", line);
+            Assert.Contains("occurredAtUtc=", line);
+            Assert.Contains("traceId=", line);
+            foreach (var forbidden in new[] { TestPasswords.Seed, ".AspNetCore.Identity", "Cookie", "password", "X-CSRF-TOKEN" })
+            {
+                Assert.DoesNotContain(forbidden, line, StringComparison.OrdinalIgnoreCase);
+            }
+        }
+        finally { await CleanupAsync(id); }
+    }
+
+    [Fact]
+    public async Task HostFiltering_UnknownHostHeader_IsRejected_ButLocalhostWorks()
+    {
+        using var client = factory.Anonymous();
+        using var ok = await client.GetAsync("/health");
+        Assert.Equal(HttpStatusCode.OK, ok.StatusCode);
+
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/health");
+        request.Headers.Host = "evil.example";
+        using var rejected = await client.SendAsync(request);
+        Assert.Equal(HttpStatusCode.BadRequest, rejected.StatusCode);
+    }
+
     // ------------------------------------------------------------------ search rate limiting (кілька partitions)
 
     [Fact]
