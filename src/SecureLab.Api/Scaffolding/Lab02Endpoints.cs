@@ -21,6 +21,15 @@ public static class Lab02Endpoints
                 return Results.Challenge();
             }
 
+            // ЛР 6 (F-06): недопустиме sortBy — очікувана помилка валідації (400), а не необроблений виняток (500).
+            if (sortBy is not (null or "" or "createdAtUtc" or "severity" or "status"))
+            {
+                return Results.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    ["sortBy"] = ["Допустимі значення: createdAtUtc, severity, status."]
+                });
+            }
+
             var canSeeAll = IncidentAccess.CanSeeAll(httpContext.User);
             var query = db.Incidents
                 .AsNoTracking()
@@ -54,7 +63,7 @@ public static class Lab02Endpoints
                                   i.Status == IncidentStatus.Resolved ? 3 : 4)
                     .ThenBy(i => i.Id),
 
-                _ => throw new BadHttpRequestException("Invalid sortBy parameter.", statusCode: StatusCodes.Status400BadRequest)
+                _ => query // недосяжно: allowlist перевірено вище (F-06)
             };
 
             // 3. Обмеження вибірки (Take 50) після сортування та матеріалізація
