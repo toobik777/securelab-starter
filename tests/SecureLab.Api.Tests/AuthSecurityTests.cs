@@ -101,7 +101,7 @@ public sealed class AuthSecurityTests(SecureLabApiFactory factory, Xunit.Abstrac
     [Fact]
     public async Task A02_LoginThenMe_ReturnsPrincipalWithSafeFieldsOnly()
     {
-        using var client = await factory.LoginAsync("alice", TestPasswords.Seed);
+        using var client = await factory.LoginWithTokenAsync("alice", TestPasswords.Seed);
         using var response = await client.GetAsync("/api/me");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
@@ -118,7 +118,7 @@ public sealed class AuthSecurityTests(SecureLabApiFactory factory, Xunit.Abstrac
     [Fact]
     public async Task A03_ForeignDemoHeader_DoesNotChangeCurrentUser()
     {
-        using var client = await factory.LoginAsync("alice", TestPasswords.Seed);
+        using var client = await factory.LoginWithTokenAsync("alice", TestPasswords.Seed);
         using var request = new HttpRequestMessage(HttpMethod.Get, "/api/me");
         request.Headers.Add("X-Demo-UserId", DbSeeder.BobId.ToString());
         using var response = await client.SendAsync(request);
@@ -143,7 +143,7 @@ public sealed class AuthSecurityTests(SecureLabApiFactory factory, Xunit.Abstrac
     [Fact]
     public async Task A04_CreateWithoutOwner_TakesOwnerFromPrincipal()
     {
-        using var client = await factory.LoginAsync("bob", TestPasswords.Seed);
+        using var client = await factory.LoginWithTokenAsync("bob", TestPasswords.Seed);
         var id = await CreateAsync(client, "A04-" + Guid.NewGuid().ToString("N"));
         try
         {
@@ -155,7 +155,7 @@ public sealed class AuthSecurityTests(SecureLabApiFactory factory, Xunit.Abstrac
     [Fact]
     public async Task A05_ForgedOwnerInJson_IsIgnored_OwnerStaysPrincipal()
     {
-        using var client = await factory.LoginAsync("bob", TestPasswords.Seed);
+        using var client = await factory.LoginWithTokenAsync("bob", TestPasswords.Seed);
         var id = await CreateAsync(client, "A05-" + Guid.NewGuid().ToString("N"), forgedOwner: DbSeeder.AliceId);
         try
         {
@@ -171,7 +171,7 @@ public sealed class AuthSecurityTests(SecureLabApiFactory factory, Xunit.Abstrac
     [Fact]
     public async Task A06_Logout_ThenProtectedRequest_Returns401()
     {
-        using var client = await factory.LoginAsync("alice", TestPasswords.Seed);
+        using var client = await factory.LoginWithTokenAsync("alice", TestPasswords.Seed);
         using (var before = await client.GetAsync("/api/me"))
             Assert.Equal(HttpStatusCode.OK, before.StatusCode);
 
@@ -264,7 +264,7 @@ public sealed class AuthSecurityTests(SecureLabApiFactory factory, Xunit.Abstrac
         Assert.NotEqual(body.id, json.RootElement.GetProperty("id").GetGuid());
 
         // Роль із body не вплинула: новий користувач лише Reporter.
-        using var session = await factory.LoginAsync(userName, password);
+        using var session = await factory.LoginWithTokenAsync(userName, password);
         using var me = await session.GetAsync("/api/me");
         using var meJson = JsonDocument.Parse(await me.Content.ReadAsStringAsync());
         Assert.Equal(new[] { "Reporter" }, meJson.RootElement.GetProperty("roles").EnumerateArray().Select(r => r.GetString()).ToArray());
@@ -346,7 +346,7 @@ public sealed class AuthSecurityTests(SecureLabApiFactory factory, Xunit.Abstrac
         using (await client.PostAsJsonAsync("/api/auth/login", new { userName = typoName, password = marker })) { }
         using (await client.PostAsJsonAsync("/api/auth/login", new { userName = "alice", password = marker })) { }
         using (await client.PostAsJsonAsync("/api/auth/register", NewRegistration(NewUserName(), marker))) { }
-        using var ok = await factory.LoginAsync("alice", TestPasswords.Seed);
+        using var ok = await factory.LoginWithTokenAsync("alice", TestPasswords.Seed);
 
         var logs = CapturedLogs.Snapshot();
         var authEvents = logs.Where(m => m.StartsWith("Auth event:", StringComparison.Ordinal)).ToArray();
@@ -367,7 +367,7 @@ public sealed class AuthSecurityTests(SecureLabApiFactory factory, Xunit.Abstrac
         var userName = NewUserName();
         using var register = await client.PostAsJsonAsync("/api/auth/register", NewRegistration(userName, TestPasswords.Seed));
         var registerText = await register.Content.ReadAsStringAsync();
-        using var session = await factory.LoginAsync(userName, TestPasswords.Seed);
+        using var session = await factory.LoginWithTokenAsync(userName, TestPasswords.Seed);
         using var me = await session.GetAsync("/api/me");
         var meText = await me.Content.ReadAsStringAsync();
 

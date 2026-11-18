@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using SecureLab.Api.Application.Incidents;
 using SecureLab.Api.Data;
 using SecureLab.Api.Data.Entities;
+using SecureLab.Api.Security;
 
 namespace SecureLab.Api.Scaffolding;
 
@@ -70,7 +71,7 @@ public static class Lab02Endpoints
             ));
 
             return Results.Ok(response);
-        }).RequireAuthorization();
+        }).RequireAuthorization().RequireRateLimiting(Lab03Security.SearchPolicy);
 
         app.MapPost("/api/incidents", async (CreateIncidentRequest request, HttpContext httpContext, SecureLabDbContext db, CancellationToken ct) =>
         {
@@ -187,7 +188,7 @@ public static class Lab02Endpoints
                 $"/api/incidents/{incident.Id}", 
                 new CreatedIncidentResponse(incident.Id, incident.Title)
             );
-        }).RequireAuthorization();
+        }).RequireAuthorization().RequireAntiforgery();
     }
 
     /// <summary>

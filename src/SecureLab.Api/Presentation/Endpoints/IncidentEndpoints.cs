@@ -5,6 +5,7 @@ using SecureLab.Api.Application.Incidents;
 using SecureLab.Api.Data;
 using SecureLab.Api.Data.Entities;
 using SecureLab.Api.Presentation.Contracts;
+using SecureLab.Api.Security;
 
 namespace SecureLab.Api.Presentation.Endpoints;
 
@@ -32,9 +33,9 @@ public static class IncidentEndpoints
             .Produces<IncidentDetailsResponse>()
             .ProducesProblem(StatusCodes.Status404NotFound);
 
-        group.MapPut("/{id:guid}", UpdateAsync).WithName("UpdateIncident");
-        group.MapDelete("/{id:guid}", DeleteAsync).WithName("DeleteIncident");
-        group.MapPost("/{id:guid}/triage", TriageAsync).WithName("TriageIncident");
+        group.MapPut("/{id:guid}", UpdateAsync).WithName("UpdateIncident").RequireAntiforgery();
+        group.MapDelete("/{id:guid}", DeleteAsync).WithName("DeleteIncident").RequireAntiforgery();
+        group.MapPost("/{id:guid}/triage", TriageAsync).WithName("TriageIncident").RequireAntiforgery();
 
         // Child resource: рішення приймається через parent incident.
         endpoints.MapGet("/api/incident-comments/{id:guid}", GetCommentAsync)

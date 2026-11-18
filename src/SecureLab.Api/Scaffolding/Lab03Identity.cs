@@ -3,6 +3,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Identity;
 using SecureLab.Api.Data;
 using SecureLab.Api.Data.Entities;
+using SecureLab.Api.Security;
 
 namespace SecureLab.Api.Scaffolding;
 
@@ -42,7 +43,8 @@ public static class Lab03Identity
             .RequireRateLimiting(Lab03Security.RegisterPolicy);
         app.MapPost("/api/auth/login", LoginAsync)
             .RequireRateLimiting(Lab03Security.LoginPolicy);
-        app.MapPost("/api/auth/logout", LogoutAsync);
+        // Logout чинного сеансу належить cookie-периметру: antiforgery перевіряється до SignOutAsync.
+        app.MapPost("/api/auth/logout", LogoutAsync).RequireAntiforgery();
         app.MapGet("/api/me", GetCurrentUser).RequireAuthorization();
         // Зразок рядка, що одночасно реєструє endpoint і вимагає автентифікацію.
         app.MapGet("/api/auth/session-check", () => Results.NoContent()).RequireAuthorization();

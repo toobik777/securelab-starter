@@ -117,6 +117,7 @@ public sealed class AuthDepthTests(SecureLabApiFactory factory, Xunit.Abstractio
         using var login = await anonymous.PostAsJsonAsync("/api/auth/login", new { userName, password = TestPasswords.Seed });
         var copied = Http.MainCookie(login)!.Split(';')[0]; // лише в пам'яті тесту, не друкується
 
+        await anonymous.UseAntiforgeryTokenAsync(); // ЛР 6: logout належить cookie-периметру (antiforgery)
         using (var logout = await anonymous.PostAsync("/api/auth/logout", null))
             Assert.Equal(HttpStatusCode.NoContent, logout.StatusCode);
 

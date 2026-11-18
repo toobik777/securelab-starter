@@ -13,6 +13,11 @@ public class AttemptLimitOptions
 
 public sealed class LoginLimitOptions : AttemptLimitOptions;
 
+public sealed class SearchLimitOptions : AttemptLimitOptions
+{
+    public SearchLimitOptions() => PermitLimit = 30;
+}
+
 public sealed class RegisterLimitOptions : AttemptLimitOptions
 {
     public RegisterLimitOptions() => PermitLimit = 10;
@@ -22,11 +27,13 @@ public static class Lab03Security
 {
     public const string LoginPolicy = "lab03-login";
     public const string RegisterPolicy = "lab03-register";
+    public const string SearchPolicy = "lab06-search";
 
     public static void AddLab03RateLimiting(this WebApplicationBuilder builder)
     {
         builder.Services.Configure<LoginLimitOptions>(builder.Configuration.GetSection("Lab03:Login"));
         builder.Services.Configure<RegisterLimitOptions>(builder.Configuration.GetSection("Lab03:Register"));
+        builder.Services.Configure<SearchLimitOptions>(builder.Configuration.GetSection("Lab06:Search"));
 
         builder.Services.AddRateLimiter(limiter =>
         {
@@ -40,6 +47,17 @@ public static class Lab03Security
             {
                 var options = context.RequestServices.GetRequiredService<IOptions<RegisterLimitOptions>>().Value;
                 return FixedWindow(context, "register", options);
+            });
+            // ЛР 6: search обмежується за перевіреною identity (id користувача з principal), а не за довільним заголовком;
+            // для неавтентифікованого запиту (який далі отримає 401) ключем є адреса клієнта.
+            limiter.AddPolicy(SearchPolicy, context =>
+            {
+                var options = context.RequestServices.GetRequiredService<IOptions<SearchLimitOptions>>().Value;
+                var userId = context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                var key = userId is not null
+                    ? "user:" + userId
+                    : "ip:" + (context.Connection.RemoteIpAddress?.ToString() ?? "unknown");
+                return FixedWindowForKey("search:" + key, options);
             });
             limiter.OnRejected = async (rejected, cancellationToken) =>
             {
@@ -62,6 +80,15 @@ public static class Lab03Security
             };
         });
     }
+
+    private static RateLimitPartition<string> FixedWindowForKey(string key, AttemptLimitOptions options) =>
+        RateLimitPartition.GetFixedWindowLimiter(key, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = options.PermitLimit,
+            Window = TimeSpan.FromSeconds(options.WindowSeconds),
+            QueueLimit = 0,
+            AutoReplenishment = true
+        });
 
     // Ключ розділу: лише адреса клієнта. Ім'я користувача з body на цьому етапі ще не прочитане,
     // а ключ за іменем дозволяв би навмисно блокувати чужий акаунт (denial of service).
