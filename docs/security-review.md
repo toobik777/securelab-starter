@@ -16,7 +16,7 @@
 
 ## 4. Methodology та test environment
 
-- review-start commit: `92f94f5` (тег `v0.5.0`); SDK-policy commit `e269e1a`; код — `e13ede9`, `ebbc7e2`, `d678320`; прийнятий merge і тег `v1.0.0` — hash додається в PDF-експорт (`git rev-list -n 1 v1.0.0`).
+- review-start commit: `92f94f5` (тег `v0.5.0`); SDK-policy commit `e269e1a`; код — `e13ede9`, `ebbc7e2`, `d678320`; прийнятий merge і фінальний тег `v1.0.1` — hash додається в PDF-експорт (`git rev-list -n 1 v1.0.1`). Назва `v1.0.0`, яку вказує методика, вже зайнята лише-легким тегом на commit `bcf8a16` (ЛР 1, уже опублікований на GitHub); існуючий тег не переміщували й не перезаписували, тому фінальний тег ЛР 6 має назву `v1.0.1`.
 - Середовище: Windows 11; .NET SDK 10.0.303; PostgreSQL у Docker (`127.0.0.1:54329`); Development — `launchSettings.json` (`http://localhost:5080`); production-like — `ASPNETCORE_ENVIRONMENT=Production`, `--no-launch-profile`, `ConnectionStrings__SecureLab` поза Git, `Logging__Console__IncludeScopes=true`.
 - Підхід: спершу межі й активи (threat model), далі перевірка контролів на фактичних відповідях (`scripts/lr06/lab06_probe.py`), тести через HTTP-межу (xUnit + `WebApplicationFactory`), перегляд журналів і залежностей. Reset (`--reset-database`) лише в Development перед експериментами.
 - Клієнти спостережень: Python-helper (cookie в пам'яті процесу), `curl.exe`, cookie-aware test host (`https://localhost` base address). Test host не доводить реальний TLS чи HSTS.
